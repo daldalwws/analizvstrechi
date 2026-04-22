@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Анализ совещания · Bereke Bank</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f14;--surface:#13161e;--surface2:#1a1e2a;--border:#252b3b;--accent:#e8c870;--accent2:#6eb5ff;--accent3:#7deba0;--danger:#ff6b6b;--text:#e8eaf0;--text-muted:#6b7694;--text-dim:#3d4460;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:-50%;left:-20%;width:60%;height:80%;background:radial-gradient(ellipse,rgba(232,200,112,.04) 0%,transparent 70%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;bottom:-30%;right:-10%;width:50%;height:70%;background:radial-gradient(ellipse,rgba(110,181,255,.04) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.app{max-width:900px;margin:0 auto;padding:48px 24px;position:relative;z-index:1;}
+header{margin-bottom:48px;animation:fadeUp .6s ease both;}
+.header-label{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;opacity:.8;}
+h1{font-family:'Playfair Display',serif;font-size:clamp(26px,5vw,40px);font-weight:700;line-height:1.15;}
+h1 span{color:var(--accent);}
+.header-sub{margin-top:10px;font-size:12px;color:var(--text-muted);font-weight:300;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;animation:fadeUp .6s ease .1s both;}
+.panel-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+.full{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:6px;}
+label{font-size:11px;color:var(--text-muted);}
+input[type=text],input[type=password]{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;width:100%;}
+input:focus{border-color:var(--accent);}
+input::placeholder{color:var(--text-dim);}
+
+/* ── AUTH GATE ── */
+.auth-gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-gate.hidden{display:none;}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:400px;width:100%;text-align:center;animation:fadeUp .5s ease both;}
+.auth-logo{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;opacity:.8;}
+.auth-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:8px;}
+.auth-title span{color:var(--accent);}
+.auth-sub{font-size:12px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;}
+.auth-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;transition:border-color .2s;width:100%;text-align:center;letter-spacing:.15em;margin-bottom:12px;}
+.auth-input:focus{border-color:var(--accent);}
+.auth-btn{width:100%;padding:14px;background:var(--accent);color:#0d0f14;border:none;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.auth-btn:hover{background:#f0d48a;}
+.auth-error{font-size:12px;color:var(--danger);margin-top:12px;opacity:0;transition:opacity .3s;}
+.auth-error.visible{opacity:1;}
+.auth-hint{font-size:11px;color:var(--text-dim);margin-top:20px;}
+
+/* ── MODE SELECTOR ── */
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;animation:fadeUp .6s ease .05s both;}
+.mode-tab{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:all .2s;text-align:left;}
+.mode-tab:hover{border-color:var(--text-muted);}
+.mode-tab.active{border-color:var(--accent);background:rgba(232,200,112,.06);}
+.mode-tab.active.transcript-mode{border-color:var(--accent3);background:rgba(125,235,160,.05);}
+.mode-tab-icon{font-size:20px;margin-bottom:8px;}
+.mode-tab-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.mode-tab-desc{font-size:11px;color:var(--text-dim);line-height:1.5;}
+.mode-tab.active .mode-tab-name{color:var(--accent);}
+.mode-tab.active.transcript-mode .mode-tab-name{color:var(--accent3);}
+
+/* ── ANALYSIS FIELDS (hidden in transcript-only mode) ── */
+.analysis-only{transition:opacity .2s;}
+.analysis-only.hidden{display:none;}
+
+.upload-zone{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .25s;margin-bottom:20px;animation:fadeUp .6s ease .2s both;}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(232,200,112,.03);}
+.upload-zone.has-file{border-style:solid;border-color:var(--accent3);background:rgba(125,235,160,.03);}
+.upload-icon{font-size:36px;margin-bottom:12px;display:block;opacity:.6;}
+.upload-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:8px;}
+.upload-hint{font-size:11px;color:var(--text-muted);margin-top:4px;}
+.upload-filename{font-size:12px;color:var(--accent3);margin-top:10px;}
+#fileInput{display:none;}
+.btn-analyze{width:100%;padding:16px;background:var(--accent);color:#0d0f14;border:none;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-bottom:28px;animation:fadeUp .6s ease .3s both;}
+.btn-analyze:hover:not(:disabled){background:#f0d48a;transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,200,112,.2);}
+.btn-analyze.transcript-btn{background:var(--accent3);color:#0d0f14;}
+.btn-analyze.transcript-btn:hover:not(:disabled){background:#9af5bc;box-shadow:0 8px 24px rgba(125,235,160,.2);}
+.btn-analyze:disabled{opacity:.4;cursor:not-allowed;}
+.btn-reset{width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.08em;text-transform:uppercase;margin-top:10px;}
+.btn-reset:hover{border-color:var(--text-muted);color:var(--text);}
+.progress-section{display:none;margin-bottom:28px;}
+.progress-section.visible{display:block;}
+.step{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-radius:8px;background:var(--surface);border:1px solid var(--border);transition:all .3s;font-size:12px;margin-bottom:10px;}
+.step.active{border-color:var(--accent);background:rgba(232,200,112,.05);}
+.step.done{border-color:var(--accent3);background:rgba(125,235,160,.04);}
+.step.error{border-color:var(--danger);background:rgba(255,107,107,.05);}
+.step-icon{width:24px;height:24px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all .3s;}
+.step.active .step-icon{border-color:var(--accent);animation:pulse 1.2s ease infinite;}
+.step.done .step-icon{background:var(--accent3);border-color:var(--accent3);color:#0d0f14;}
+.step.error .step-icon{background:var(--danger);border-color:var(--danger);color:#fff;}
+.step-text{color:var(--text-muted);}
+.step.active .step-text,.step.done .step-text{color:var(--text);}
+.step-detail{font-size:10px;color:var(--text-dim);margin-top:2px;}
+.error-banner{display:none;background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.3);border-radius:10px;padding:16px 20px;font-size:12px;color:var(--danger);margin-bottom:20px;line-height:1.6;}
+.error-banner.visible{display:block;}
+
+/* ── TRANSCRIPT-ONLY RESULT ── */
+.transcript-only-result{display:none;background:var(--surface);border:1px solid var(--accent3);border-radius:12px;padding:24px;margin-bottom:20px;}
+.transcript-only-result.visible{display:block;}
+.transcript-only-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.transcript-only-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--accent3);}
+.transcript-only-meta{font-size:11px;color:var(--text-dim);}
+.transcript-result-text{font-size:12px;line-height:1.9;color:var(--text-muted);font-weight:300;white-space:pre-wrap;max-height:500px;overflow-y:auto;padding-right:8px;}
+.transcript-result-text::-webkit-scrollbar{width:4px;}
+.transcript-result-text::-webkit-scrollbar-track{background:var(--surface2);}
+.transcript-result-text::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.transcript-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+.results{display:none;flex-direction:column;gap:16px;}
+.results.visible{display:flex;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.card-header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:background .15s;}
+.card-header:hover{background:rgba(255,255,255,.02);}
+.card-icon{font-size:16px;}
+.card-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;flex:1;}
+.card-toggle{font-size:11px;color:var(--text-dim);transition:transform .2s;}
+.card-toggle.open{transform:rotate(180deg);}
+.card-body{padding:20px;display:none;}
+.card-body.open{display:block;}
+.overview-card{background:linear-gradient(135deg,rgba(232,200,112,.05),rgba(110,181,255,.03));border:1px solid rgba(232,200,112,.15);border-radius:14px;padding:24px;margin-bottom:16px;}
+.overview-title{font-family:'Playfair Display',serif;font-size:14px;color:var(--accent);margin-bottom:16px;}
+.overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.ov-field{background:rgba(0,0,0,.2);border-radius:8px;padding:10px 14px;}
+.ov-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;}
+.ov-value{font-size:13px;color:var(--text);}
+.proto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+@media(max-width:600px){.proto-grid{grid-template-columns:1fr;}}
+.proto-field{background:var(--surface2);border-radius:8px;padding:10px 14px;}
+.proto-field.full{grid-column:1/-1;}
+.proto-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;}
+.proto-value{font-size:13px;color:var(--text);}
+.section-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;}
+.agenda-item{background:var(--surface2);border-radius:8px;padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--accent2);}
+.agenda-q{font-size:13px;color:var(--text);margin-bottom:6px;font-weight:500;}
+.agenda-num{color:var(--accent2);margin-right:6px;}
+.agenda-d{font-size:12px;color:var(--accent3);margin-bottom:4px;padding-left:16px;}
+.agenda-r{font-size:11px;color:var(--text-muted);padding-left:16px;}
+.context-block{background:linear-gradient(135deg,rgba(110,181,255,.06),rgba(125,235,160,.04));border:1px solid rgba(110,181,255,.2);border-radius:10px;padding:16px 20px;font-size:13px;line-height:1.8;font-style:italic;font-weight:300;}
+.text-block{font-size:13px;line-height:1.8;font-weight:300;}
+.decision-item{display:flex;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent2);font-size:12px;line-height:1.6;margin-bottom:8px;}
+.decision-num{color:var(--accent2);font-weight:500;flex-shrink:0;min-width:20px;}
+.task-item{background:var(--surface2);border-radius:8px;padding:14px 16px;border-left:3px solid var(--accent);margin-bottom:10px;}
+.task-title{font-size:13px;margin-bottom:8px;}
+.task-meta{display:flex;gap:8px;flex-wrap:wrap;}
+.task-tag{font-size:10px;padding:3px 8px;border-radius:4px;letter-spacing:.05em;}
+.task-tag.responsible{background:rgba(232,200,112,.1);color:var(--accent);border:1px solid rgba(232,200,112,.2);}
+.task-tag.deadline{background:rgba(110,181,255,.1);color:var(--accent2);border:1px solid rgba(110,181,255,.2);}
+.task-tag.priority{background:rgba(125,235,160,.1);color:var(--accent3);border:1px solid rgba(125,235,160,.2);}
+.transcript-text{font-size:12px;line-height:1.9;color:var(--text-muted);font-weight:300;white-space:pre-wrap;max-height:400px;overflow-y:auto;padding-right:8px;}
+.transcript-text::-webkit-scrollbar{width:4px;}
+.transcript-text::-webkit-scrollbar-track{background:var(--surface2);}
+.transcript-text::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.copy-btn{margin-top:14px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;letter-spacing:.05em;}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* CHAT */
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px 0;}
+.chat-suggestion{padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+.chat-suggestion:hover{border-color:var(--accent);color:var(--accent);}
+.chat-messages{padding:16px 20px;display:flex;flex-direction:column;gap:12px;min-height:80px;max-height:420px;overflow-y:auto;}
+.chat-messages::-webkit-scrollbar{width:4px;}
+.chat-messages::-webkit-scrollbar-track{background:var(--surface2);}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.chat-msg{display:flex;gap:10px;animation:fadeUp .3s ease both;}
+.chat-msg.user{flex-direction:row-reverse;}
+.chat-bubble{max-width:82%;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.7;}
+.chat-msg.user .chat-bubble{background:rgba(232,200,112,.12);border:1px solid rgba(232,200,112,.2);color:var(--text);border-radius:10px 2px 10px 10px;}
+.chat-msg.ai .chat-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-radius:2px 10px 10px 10px;}
+.chat-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:2px;}
+.chat-msg.user .chat-avatar{background:rgba(232,200,112,.15);border:1px solid rgba(232,200,112,.2);}
+.chat-msg.ai .chat-avatar{background:var(--surface2);border:1px solid var(--border);}
+.chat-empty{color:var(--text-dim);font-size:12px;text-align:center;padding:16px 0;}
+.chat-input-row{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--border);background:var(--surface2);}
+.chat-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;resize:none;min-height:40px;max-height:120px;line-height:1.5;}
+.chat-input:focus{border-color:var(--accent);}
+.chat-input::placeholder{color:var(--text-dim);}
+.chat-send{padding:10px 18px;background:var(--accent);color:#0d0f14;border:none;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;letter-spacing:.05em;}
+.chat-send:hover:not(:disabled){background:#f0d48a;}
+.chat-send:disabled{opacity:.4;cursor:not-allowed;}
+/* MODEL SELECTOR */
+.model-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+@media(max-width:500px){.model-selector{grid-template-columns:1fr;}}
+.model-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;}
+.model-opt:hover{border-color:var(--text-muted);}
+.model-opt.active{border-color:var(--accent);background:rgba(232,200,112,.06);}
+.model-name{font-size:12px;color:var(--text);margin-bottom:3px;}
+.model-desc{font-size:10px;color:var(--text-dim);line-height:1.5;}
+.model-badge{font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(125,235,160,.15);color:var(--accent3);border:1px solid rgba(125,235,160,.2);margin-left:6px;vertical-align:middle;}
+.model-badge.expensive{background:rgba(110,181,255,.1);color:var(--accent2);border-color:rgba(110,181,255,.2);}
+.save-keys-btn{padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;letter-spacing:.05em;}
+.save-keys-btn:hover{border-color:var(--accent3);color:var(--accent3);}
+.save-keys-hint{font-size:11px;color:var(--accent3);opacity:0;transition:opacity .3s;}
+.save-keys-hint.visible{opacity:1;}
+/* HISTORY */
+.history-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;animation:fadeUp .6s ease .15s both;}
+.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.history-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);}
+.history-clear{font-size:11px;color:var(--text-dim);cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;transition:color .2s;padding:0;}
+.history-clear:hover{color:var(--danger);}
+.history-empty{font-size:12px;color:var(--text-dim);text-align:center;padding:8px 0;}
+.history-list{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;padding-right:4px;}
+.history-list::-webkit-scrollbar{width:3px;}
+.history-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.history-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;}
+.history-item:hover{border-color:var(--accent);background:rgba(232,200,112,.04);}
+.history-item-icon{font-size:16px;flex-shrink:0;}
+.history-item-info{flex:1;min-width:0;}
+.history-item-topic{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.history-item-meta{font-size:10px;color:var(--text-dim);margin-top:2px;}
+.history-item-del{font-size:12px;color:var(--text-dim);cursor:pointer;padding:4px;border-radius:4px;transition:all .2s;flex-shrink:0;background:none;border:none;font-family:inherit;}
+.history-item-del:hover{color:var(--danger);background:rgba(255,107,107,.1);}
+/* Logout button */
+.logout-btn{position:fixed;bottom:20px;right:20px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;z-index:100;}
+.logout-btn:hover{border-color:var(--danger);color:var(--danger);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,200,112,.4)}50%{box-shadow:0 0 0 6px rgba(232,200,112,0)}}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH GATE ══════════════════════════════════════════════════ -->
+<div class="auth-gate" id="authGate">
+  <div class="auth-box">
+    <div class="auth-logo">Bereke Bank · ДПУОР</div>
+    <h2 class="auth-title">Анализ <span>совещания</span></h2>
+    <p class="auth-sub">Инструмент для сотрудников отдела.<br>Введите пароль доступа.</p>
+    <input class="auth-input" type="password" id="authInput" placeholder="••••••••" autocomplete="off">
+    <button class="auth-btn" onclick="checkAuth()">Войти</button>
+    <div class="auth-error" id="authError">Неверный пароль</div>
+    <div class="auth-hint">Пароль у вашего руководителя или в рабочем чате</div>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none;">
+
+<header>
+  <div class="header-label">Bereke Bank · ДПУОР</div>
+  <h1>Анализ <span>совещания</span></h1>
+  <div class="header-sub">Загрузите аудио — получите транскрипт или полный протокол с задачами</div>
+</header>
+
+<!-- ── MODE TABS ──────────────────────────────────────────────────── -->
+<div class="mode-tabs">
+  <div class="mode-tab transcript-mode active" id="tabTranscript" onclick="selectAppMode('transcript')">
+    <div class="mode-tab-icon">📝</div>
+    <div class="mode-tab-name">Только транскрипт</div>
+    <div class="mode-tab-desc">Расшифровка аудио через Groq Whisper. Нужен только GROQ API ключ.</div>
+  </div>
+  <div class="mode-tab" id="tabAnalysis" onclick="selectAppMode('analysis')">
+    <div class="mode-tab-icon">🔍</div>
+    <div class="mode-tab-name">Транскрипт + Анализ</div>
+    <div class="mode-tab-desc">Полный протокол, задачи, решения и AI-чат. Нужны GROQ + Claude или Gemini.</div>
+  </div>
+</div>
+
+<!-- ── API SETTINGS ───────────────────────────────────────────────── -->
+<div class="panel">
+  <div class="panel-title">⚙ Настройки API</div>
+  <div class="grid2">
+    <div class="field">
+      <label>GROQ API KEY (транскрипция — обязательно)</label>
+      <input type="password" id="groqKey" placeholder="gsk_..." autocomplete="off">
+    </div>
+    <div class="field" style="display:flex;align-items:flex-end;">
+      <div>
+        <button class="save-keys-btn" onclick="saveKeys()" style="margin-top:20px;">💾 Сохранить ключи</button>
+        <span class="save-keys-hint" id="saveKeysHint" style="margin-left:10px;margin-top:20px;"></span>
+      </div>
+    </div>
+
+    <!-- ANALYSIS-ONLY FIELDS -->
+    <div class="field analysis-only" id="fieldAnthropic">
+      <label>ANTHROPIC API KEY (Claude)</label>
+      <input type="password" id="anthropicKey" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="field analysis-only" id="fieldGemini">
+      <label>GOOGLE AI API KEY (Gemini)</label>
+      <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off">
+    </div>
+    <div class="field full analysis-only" id="fieldModel">
+      <label>Модель анализа</label>
+      <div class="model-selector">
+        <div class="model-opt active" id="optClaude" onclick="selectModel('claude')">
+          <div class="model-name">Claude Sonnet <span class="model-badge expensive">Точнее</span></div>
+          <div class="model-desc">~$0.08 за 2ч · Anthropic · Лучший контекст</div>
+        </div>
+        <div class="model-opt" id="optGemini" onclick="selectModel('gemini')">
+          <div class="model-name">Gemini 2.5 Flash <span class="model-badge">Дешевле</span></div>
+          <div class="model-desc">~$0.01 за 2ч · Google · Бесплатный ключ на aistudio.google.com</div>
+        </div>
+      </div>
+    </div>
+    <div class="field full analysis-only" id="fieldContext">
+      <label>Контекст совещания (необязательно)</label>
+      <input type="text" id="meetingContext" placeholder="Например: встреча по БТ операционных рисков в ELMA">
+    </div>
+  </div>
+</div>
+
+<!-- ── HISTORY ────────────────────────────────────────────────────── -->
+<div class="history-panel" id="historyPanel">
+  <div class="history-header">
+    <div class="history-title">📁 История</div>
+    <button class="history-clear" onclick="clearHistory()">Очистить всё</button>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">Нет сохранённых совещаний</div>
+  </div>
+</div>
+
+<!-- ── UPLOAD ─────────────────────────────────────────────────────── -->
+<div class="upload-zone" id="uploadZone">
+  <span class="upload-icon">🎙</span>
+  <div class="upload-title">Перетащите аудиофайл сюда</div>
+  <div class="upload-hint">или нажмите для выбора</div>
+  <div class="upload-hint" style="margin-top:6px;"><strong style="color:var(--accent)">Можно выбрать несколько файлов</strong> · MP3 · MP4 · WAV · M4A</div>
+  <div class="upload-filename" id="fileName"></div>
+  <input type="file" id="fileInput" accept="audio/*,video/mp4,video/webm" multiple>
+</div>
+
+<button class="btn-analyze transcript-btn" id="analyzeBtn" disabled>▶ &nbsp; Получить транскрипт</button>
+<div class="error-banner" id="errorBanner"></div>
+
+<!-- ── PROGRESS ───────────────────────────────────────────────────── -->
+<div class="progress-section" id="progressSection">
+  <div class="step" id="step1">
+    <div class="step-icon" id="icon1">1</div>
+    <div><div class="step-text">Сжатие и транскрипция через Groq Whisper</div><div class="step-detail" id="detail1">Ожидание...</div></div>
+  </div>
+  <div class="step" id="step2">
+    <div class="step-icon" id="icon2">2</div>
+    <div><div class="step-text" id="step2text">Анализ транскрипта</div><div class="step-detail" id="detail2">Ожидание...</div></div>
+  </div>
+  <div class="step analysis-only-step" id="step3">
+    <div class="step-icon" id="icon3">3</div>
+    <div><div class="step-text">Формирование результатов</div><div class="step-detail" id="detail3">Ожидание...</div></div>
+  </div>
+</div>
+
+<!-- ── TRANSCRIPT-ONLY RESULT ─────────────────────────────────────── -->
+<div class="transcript-only-result" id="transcriptOnlyResult">
+  <div class="transcript-only-header">
+    <div class="transcript-only-title">📝 Транскрипт готов</div>
+    <div class="transcript-only-meta" id="transcriptMeta"></div>
+  </div>
+  <div class="transcript-result-text" id="transcriptOnlyText"></div>
+  <div class="transcript-actions">
+    <button class="copy-btn" style="margin-top:0" onclick="copyEl('transcriptOnlyText')">Копировать</button>
+    <button class="copy-btn" style="margin-top:0" onclick="downloadTranscriptOnly()">⬇ Скачать .txt</button>
+  </div>
+  <button class="btn-reset" onclick="resetAll()" style="margin-top:16px;">↺ &nbsp; Новое совещание</button>
+</div>
+
+<!-- ── FULL ANALYSIS RESULTS ──────────────────────────────────────── -->
+<div class="results" id="results">
+
+  <div class="overview-card">
+    <div class="overview-title">📎 Сводка совещания</div>
+    <div class="overview-grid">
+      <div class="ov-field"><div class="ov-label">Дата</div><div class="ov-value" id="ovDate">—</div></div>
+      <div class="ov-field"><div class="ov-label">Тема</div><div class="ov-value" id="ovTopic">—</div></div>
+      <div class="ov-field"><div class="ov-label">Участники</div><div class="ov-value" id="ovParticipants">—</div></div>
+      <div class="ov-field"><div class="ov-label">Задач</div><div class="ov-value" id="ovTasks">—</div></div>
+      <div class="ov-field"><div class="ov-label">Решений</div><div class="ov-value" id="ovDecisions">—</div></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('protocol')">
+      <span class="card-icon">🗒</span><span class="card-title">Протокол совещания</span>
+      <span class="card-toggle open" id="toggleProtocol">▼</span>
+    </div>
+    <div class="card-body open" id="bodyProtocol">
+      <div class="proto-grid">
+        <div class="proto-field"><div class="proto-label">Дата</div><div class="proto-value" id="protoDate">—</div></div>
+        <div class="proto-field"><div class="proto-label">Тема</div><div class="proto-value" id="protoTopic">—</div></div>
+        <div class="proto-field full"><div class="proto-label">Участники</div><div class="proto-value" id="protoParticipants">—</div></div>
+      </div>
+      <div class="section-label">Вопросы повестки и решения</div>
+      <div id="protoAgenda"></div>
+      <button class="copy-btn" onclick="copyProtocol()">Копировать протокол</button>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('context')">
+      <span class="card-icon">💡</span><span class="card-title">Контекст</span>
+      <span class="card-toggle open" id="toggleContext">▼</span>
+    </div>
+    <div class="card-body open" id="bodyContext">
+      <div class="context-block" id="contextText"></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('summary')">
+      <span class="card-icon">📋</span><span class="card-title">Краткое резюме</span>
+      <span class="card-toggle open" id="toggleSummary">▼</span>
+    </div>
+    <div class="card-body open" id="bodySummary">
+      <div class="text-block" id="summaryText"></div>
+      <button class="copy-btn" onclick="copyEl('summaryText')">Копировать</button>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('conclusion')">
+      <span class="card-icon">🎯</span><span class="card-title">Заключение</span>
+      <span class="card-toggle open" id="toggleConclusion">▼</span>
+    </div>
+    <div class="card-body open" id="bodyConclusion">
+      <div class="text-block" id="conclusionText"></div>
+      <button class="copy-btn" onclick="copyEl('conclusionText')">Копировать</button>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('decisions')">
+      <span class="card-icon">✅</span><span class="card-title">Ключевые решения</span>
+      <span class="card-toggle open" id="toggleDecisions">▼</span>
+    </div>
+    <div class="card-body open" id="bodyDecisions">
+      <div id="decisionsList"></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('tasks')">
+      <span class="card-icon">📌</span><span class="card-title">Задачи и ответственные</span>
+      <span class="card-toggle open" id="toggleTasks">▼</span>
+    </div>
+    <div class="card-body open" id="bodyTasks">
+      <div id="tasksList"></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('transcript')">
+      <span class="card-icon">📝</span><span class="card-title">Полный транскрипт</span>
+      <span class="card-toggle" id="toggleTranscript">▼</span>
+    </div>
+    <div class="card-body" id="bodyTranscript">
+      <div class="transcript-text" id="transcriptText"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+        <button class="copy-btn" style="margin-top:0;" onclick="copyEl('transcriptText')">Копировать</button>
+        <button class="copy-btn" style="margin-top:0;" onclick="downloadTranscript()">⬇ Скачать транскрипт .txt</button>
+        <button class="copy-btn" style="margin-top:0;" onclick="downloadFullReport()">⬇ Скачать полный отчёт .txt</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="card-header" onclick="toggleCard('chat')">
+      <span class="card-icon">💬</span><span class="card-title">Уточнить по совещанию</span>
+      <span class="card-toggle open" id="toggleChat">▼</span>
+    </div>
+    <div class="card-body open" id="bodyChat" style="padding:0;">
+      <div class="chat-suggestions" id="chatSuggestions">
+        <span class="chat-suggestion" onclick="useSuggestion(this)">Какие риски выявлены?</span>
+        <span class="chat-suggestion" onclick="useSuggestion(this)">Кто за что отвечает?</span>
+        <span class="chat-suggestion" onclick="useSuggestion(this)">Что осталось нерешённым?</span>
+        <span class="chat-suggestion" onclick="useSuggestion(this)">Список задач для почты</span>
+        <span class="chat-suggestion" onclick="useSuggestion(this)">Какие сроки упомянуты?</span>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty">Задайте вопрос по содержанию совещания</div>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" placeholder="Спросите что-то по совещанию... (Enter — отправить, Shift+Enter — перенос)" rows="1"></textarea>
+        <button class="chat-send" id="chatSend" onclick="sendChat()">Отправить</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-reset" onclick="resetAll()">↺ &nbsp; Новое совещание</button>
+</div>
+
+</div><!-- /app -->
+
+<button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none;">🔒 Выйти</button>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// !! СМЕНИ ПАРОЛЬ ЗДЕСЬ перед деплоем !!
+// Пароль должен знать только твой отдел.
+// ══════════════════════════════════════════════════════════════════
+const ACCESS_PASSWORD = 'bereke2025';
+const AUTH_KEY = 'dpuior_auth_v1';
+
+// ── AUTH ──────────────────────────────────────────────────────────
+function checkAuth() {
+  const val = document.getElementById('authInput').value;
+  if (val === ACCESS_PASSWORD) {
+    localStorage.setItem(AUTH_KEY, btoa(ACCESS_PASSWORD + '_ok'));
+    showApp();
+  } else {
+    const err = document.getElementById('authError');
+    err.classList.add('visible');
+    document.getElementById('authInput').value = '';
+    setTimeout(() => err.classList.remove('visible'), 2500);
+  }
+}
+
+function isAuthed() {
+  try { return atob(localStorage.getItem(AUTH_KEY) || '') === ACCESS_PASSWORD + '_ok'; }
+  catch(e) { return false; }
+}
+
+function showApp() {
+  document.getElementById('authGate').classList.add('hidden');
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'block';
+}
+
+function logout() {
+  localStorage.removeItem(AUTH_KEY);
+  location.reload();
+}
+
+// Init on load
+document.getElementById('authInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkAuth();
+});
+if (isAuthed()) showApp();
+
+// ── APP MODE ─────────────────────────────────────────────────────
+// 'transcript' = только расшифровка, 'analysis' = полный анализ
+let appMode = 'transcript';
+
+function selectAppMode(mode) {
+  appMode = mode;
+  const tabT = document.getElementById('tabTranscript');
+  const tabA = document.getElementById('tabAnalysis');
+  tabT.classList.toggle('active', mode === 'transcript');
+  tabA.classList.toggle('active', mode === 'analysis');
+
+  // Show/hide analysis-only fields
+  document.querySelectorAll('.analysis-only').forEach(el => {
+    el.classList.toggle('hidden', mode === 'transcript');
+  });
+  // Show/hide step3
+  const s3 = document.getElementById('step3');
+  if (s3) s3.style.display = mode === 'analysis' ? 'flex' : 'none';
+
+  // Update button label & style
+  const btn = document.getElementById('analyzeBtn');
+  if (mode === 'transcript') {
+    btn.textContent = '▶   Получить транскрипт';
+    btn.classList.add('transcript-btn');
+  } else {
+    btn.textContent = '▶   Анализировать совещание';
+    btn.classList.remove('transcript-btn');
+  }
+  updateBtn();
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────
+const HISTORY_KEY = 'meeting_history';
+const MAX_HISTORY = 20;
+
+function saveToHistory(transcript, analysis, filename) {
+  const history = loadHistory();
+  const entry = {
+    id: Date.now(),
+    filename: filename || 'совещание',
+    date: analysis.date || new Date().toLocaleDateString('ru-RU'),
+    topic: analysis.topic || '—',
+    savedAt: new Date().toLocaleString('ru-RU'),
+    transcript,
+    analysis,
+    mode: appMode
+  };
+  history.unshift(entry);
+  if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function saveTranscriptToHistory(transcript, filename) {
+  saveToHistory(transcript, {
+    date: new Date().toLocaleDateString('ru-RU'),
+    topic: filename || 'транскрипт',
+    participants: [], context: '', summary: '', conclusion: '',
+    agenda_items: [], decisions: [], tasks: []
+  }, filename);
+}
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function renderHistory() {
+  const history = loadHistory();
+  const list = document.getElementById('historyList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!history.length) {
+    list.innerHTML = '<div class="history-empty">Нет сохранённых совещаний</div>';
+    return;
+  }
+  history.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    const modeIcon = entry.mode === 'transcript' ? '📝' : '🎙';
+    item.innerHTML = `
+      <div class="history-item-icon">${modeIcon}</div>
+      <div class="history-item-info" onclick="loadFromHistory(${entry.id})">
+        <div class="history-item-topic">${entry.topic}</div>
+        <div class="history-item-meta">${entry.date} · ${entry.filename} · сохранено ${entry.savedAt}</div>
+      </div>
+      <button class="history-item-del" onclick="deleteFromHistory(${entry.id}, event)" title="Удалить">✕</button>`;
+    list.appendChild(item);
+  });
+}
+
+function loadFromHistory(id) {
+  const history = loadHistory();
+  const entry = history.find(e => e.id === id);
+  if (!entry) return;
+  document.getElementById('progressSection').classList.remove('visible');
+  if (entry.mode === 'transcript') {
+    showTranscriptOnly(entry.transcript, entry.filename);
+  } else {
+    renderResults(entry.transcript, entry.analysis);
+    initChat(entry.transcript, entry.analysis, getApiKey());
+    document.getElementById('results').classList.add('visible');
+  }
+  setTimeout(() => document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'}), 100);
+}
+
+function deleteFromHistory(id, event) {
+  event.stopPropagation();
+  const history = loadHistory().filter(e => e.id !== id);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('Удалить всю историю?')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+// ── VARS ──────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+let selectedFiles = [];
+let currentModel = 'claude';
+let chatHistory = [], chatTranscript = '', chatAnalysis = null, chatApiKey = '';
+let lastTranscriptFilename = '';
+
+// ── API KEY PERSISTENCE ───────────────────────────────────────────
+function saveKeys() {
+  const groq      = $('groqKey').value.trim();
+  const anthropic = $('anthropicKey').value.trim();
+  const gemini    = $('geminiKey')?.value.trim() || '';
+  if (groq)      localStorage.setItem('groq_key', groq);
+  if (anthropic) localStorage.setItem('anthropic_key', anthropic);
+  if (gemini)    localStorage.setItem('gemini_key', gemini);
+  const hint = $('saveKeysHint');
+  hint.textContent = '✓ Ключи сохранены';
+  hint.classList.add('visible');
+  setTimeout(() => hint.classList.remove('visible'), 2500);
+}
+
+function loadKeys() {
+  const groq      = localStorage.getItem('groq_key');
+  const anthropic = localStorage.getItem('anthropic_key');
+  const gemini    = localStorage.getItem('gemini_key');
+  if (groq && $('groqKey'))           $('groqKey').value = groq;
+  if (anthropic && $('anthropicKey')) $('anthropicKey').value = anthropic;
+  if (gemini && $('geminiKey'))       $('geminiKey').value = gemini;
+  if (groq || anthropic || gemini) updateBtn();
+}
+
+let saveTimer = null;
+function autoSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const groq      = $('groqKey')?.value.trim();
+    const anthropic = $('anthropicKey')?.value.trim();
+    const gemini    = $('geminiKey')?.value.trim();
+    if (groq)      localStorage.setItem('groq_key', groq);
+    if (anthropic) localStorage.setItem('anthropic_key', anthropic);
+    if (gemini)    localStorage.setItem('gemini_key', gemini);
+  }, 1000);
+}
+
+// ── MODEL SELECTOR ────────────────────────────────────────────────
+function selectModel(model) {
+  currentModel = model;
+  $('optClaude').classList.toggle('active', model==='claude');
+  $('optGemini').classList.toggle('active', model==='gemini');
+  updateBtn();
+}
+
+function getApiKey() {
+  return currentModel === 'gemini'
+    ? ($('geminiKey')?.value.trim() || '')
+    : ($('anthropicKey')?.value.trim() || '');
+}
+
+function updateBtn() {
+  const hasFiles = selectedFiles.length > 0;
+  const hasGroq  = $('groqKey').value.trim().length > 0;
+  const hasApi   = appMode === 'transcript' ? true : getApiKey().length > 0;
+  $('analyzeBtn').disabled = !(hasFiles && hasGroq && hasApi);
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────
+const uploadZone = $('uploadZone');
+const fileInput  = $('fileInput');
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) setFiles(Array.from(e.dataTransfer.files));
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) setFiles(Array.from(e.target.files)); });
+
+function setFiles(files) {
+  files.sort((a,b) => a.name.localeCompare(b.name));
+  selectedFiles = files;
+  if (files.length === 1) {
+    $('fileName').textContent = `✓ ${files[0].name} (${(files[0].size/1024/1024).toFixed(1)} МБ)`;
+  } else {
+    const total = files.reduce((s,f)=>s+f.size,0)/1024/1024;
+    $('fileName').textContent = `✓ ${files.length} файлов: ${files.map(f=>f.name).join(', ')} (${total.toFixed(1)} МБ)`;
+  }
+  uploadZone.classList.add('has-file');
+  updateBtn();
+}
+
+$('groqKey').addEventListener('input', () => { updateBtn(); autoSave(); });
+document.addEventListener('input', e => { if (e.target.id==='anthropicKey'||e.target.id==='geminiKey') { updateBtn(); autoSave(); } });
+
+// ── UI ────────────────────────────────────────────────────────────
+function setStep(n, state, detail) {
+  const step=$('step'+n), icon=$('icon'+n), det=$('detail'+n);
+  if (!step) return;
+  step.className='step '+state;
+  icon.textContent=state==='done'?'✓':state==='error'?'✕':n;
+  if(detail) det.textContent=detail;
+}
+function toggleCard(name) {
+  const N=name.charAt(0).toUpperCase()+name.slice(1);
+  const body=$('body'+N), tog=$('toggle'+N);
+  if(!body||!tog)return;
+  const open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  tog.classList.toggle('open',!open);
+}
+function showError(msg){const b=$('errorBanner');b.textContent='⚠ '+msg;b.classList.add('visible');}
+function hideError(){$('errorBanner').classList.remove('visible');}
+
+// ── TRANSCRIPT-ONLY DISPLAY ───────────────────────────────────────
+function showTranscriptOnly(transcript, filename) {
+  $('transcriptOnlyText').textContent = transcript;
+  $('transcriptMeta').textContent = `${transcript.length} символов · ${filename || ''}`;
+  lastTranscriptFilename = filename || 'транскрипт';
+  $('transcriptOnlyResult').classList.add('visible');
+  setTimeout(() => $('transcriptOnlyResult').scrollIntoView({behavior:'smooth', block:'start'}), 100);
+}
+
+function downloadTranscriptOnly() {
+  const text = $('transcriptOnlyText').textContent;
+  const name = lastTranscriptFilename.replace(/\.[^.]+$/,'') || 'транскрипт';
+  const date = new Date().toLocaleDateString('ru-RU').replace(/\./g,'-');
+  const header = `ТРАНСКРИПТ СОВЕЩАНИЯ\nДата обработки: ${date}\nФайл: ${lastTranscriptFilename}\n${'='.repeat(50)}\n\n`;
+  downloadFile(header + text, `транскрипт_${date}_${name}.txt`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.txt');
+}
+
+// ── ANALYZE ───────────────────────────────────────────────────────
+$('analyzeBtn').addEventListener('click', analyze);
+
+async function analyze() {
+  const groqKey  = $('groqKey').value.trim();
+  const apiKey   = getApiKey();
+  const context  = $('meetingContext').value.trim();
+  const modelLabel = currentModel === 'gemini' ? 'Gemini 2.5 Flash' : 'Claude Sonnet';
+
+  hideError();
+  $('analyzeBtn').disabled = true;
+  $('progressSection').classList.add('visible');
+  $('results').classList.remove('visible');
+  $('transcriptOnlyResult').classList.remove('visible');
+
+  // In transcript mode, step 3 is hidden; step 2 becomes "done" quickly
+  if (appMode === 'transcript') {
+    $('step2text').textContent = 'Формирование транскрипта';
+    $('step3') && ($('step3').style.display = 'none');
+  } else {
+    $('step2text').textContent = 'Анализ транскрипта';
+    $('step3') && ($('step3').style.display = 'flex');
+  }
+
+  try {
+    setStep(1,'active','Подготовка аудио...');
+    let plainTranscript='', tsTranscript='', fileDate='';
+
+    if (selectedFiles[0]?.lastModified) {
+      const d=new Date(selectedFiles[0].lastModified);
+      fileDate=d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+
+    let totalOffsetSec=0;
+    for (let fi=0; fi<selectedFiles.length; fi++) {
+      const file=selectedFiles[fi];
+      const lbl=selectedFiles.length>1?` (файл ${fi+1}/${selectedFiles.length})`:'';
+      setStep(1,'active',`Сжатие${lbl}...`);
+      const compressed=await compressAudio(file);
+      const estDur=Math.max((compressed.size-44)/32000, 0);
+      setStep(1,'active',`Транскрипция${lbl}...`);
+      const result=await transcribeWithGroq(compressed, groqKey, totalOffsetSec);
+      plainTranscript+=(fi>0?' ':'')+result.plain;
+      tsTranscript+=(fi>0?'\n':'')+result.timestamped;
+      totalOffsetSec+=estDur;
+      $('detail1').textContent=`Получено ${plainTranscript.length} символов...`;
+    }
+    setStep(1,'done',`Транскрипт готов (${plainTranscript.length} символов)`);
+
+    // ── TRANSCRIPT-ONLY MODE ──────────────────────────────────────
+    if (appMode === 'transcript') {
+      setStep(2,'active','Сборка транскрипта...');
+      await new Promise(r => setTimeout(r, 300)); // small delay for UX
+      setStep(2,'done','Готово');
+      $('progressSection').classList.remove('visible');
+      const fname = selectedFiles[0]?.name || 'совещание';
+      showTranscriptOnly(tsTranscript, fname);
+      saveTranscriptToHistory(tsTranscript, fname);
+      $('analyzeBtn').disabled = false;
+      return;
+    }
+
+    // ── FULL ANALYSIS MODE ────────────────────────────────────────
+    setStep(2,'active',`Анализ через ${modelLabel}...`);
+    let analysis;
+    if (currentModel === 'gemini') {
+      analysis = await analyzeWithGemini(plainTranscript, context, apiKey, fileDate);
+    } else {
+      analysis = await analyzeWithClaude(plainTranscript, context, apiKey, fileDate);
+    }
+    setStep(2,'done','Анализ завершён');
+
+    setStep(3,'active','Формируем результаты...');
+    renderResults(tsTranscript, analysis);
+    initChat(tsTranscript, analysis, apiKey);
+    saveToHistory(tsTranscript, analysis, selectedFiles[0]?.name || 'совещание');
+    setStep(3,'done','Готово!');
+    $('results').classList.add('visible');
+    setTimeout(()=>$('results').scrollIntoView({behavior:'smooth',block:'start'}),100);
+
+  } catch(err) {
+    showError(err.message);
+    for(let i=1;i<=3;i++) if($('step'+i)?.classList.contains('active')) setStep(i,'error',err.message.slice(0,80));
+    $('analyzeBtn').disabled=false;
+  }
+}
+
+// ── AUDIO COMPRESSION ─────────────────────────────────────────────
+async function compressAudio(file) {
+  $('detail1').textContent='Декодирование аудио...';
+  const arrayBuffer=await file.arrayBuffer();
+  const audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+  let audioBuffer;
+  try { audioBuffer=await audioCtx.decodeAudioData(arrayBuffer); }
+  catch(e) { audioCtx.close(); return file; }
+  $('detail1').textContent=`Конвертация (${Math.round(audioBuffer.duration/60)} мин)...`;
+  const numCh=audioBuffer.numberOfChannels, len=audioBuffer.length;
+  const mono=new Float32Array(len);
+  for(let ch=0;ch<numCh;ch++){const d=audioBuffer.getChannelData(ch);for(let i=0;i<len;i++)mono[i]+=d[i]/numCh;}
+  audioCtx.close();
+  const wav=encodeWAV(mono,16000);
+  $('detail1').textContent=`Сжато: ${(wav.size/1024/1024).toFixed(1)} МБ`;
+  return wav;
+}
+function encodeWAV(samples,sr){
+  const buf=new ArrayBuffer(44+samples.length*2);
+  const v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+samples.length*2,true);ws(8,'WAVE');
+  ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+  ws(36,'data');v.setUint32(40,samples.length*2,true);
+  let off=44;
+  for(let i=0;i<samples.length;i++,off+=2)v.setInt16(off,Math.max(-1,Math.min(1,samples[i]))*0x7FFF,true);
+  return new Blob([buf],{type:'audio/wav'});
+}
+
+// ── GROQ TRANSCRIPTION ────────────────────────────────────────────
+const ARTIFACTS=['продолжение следует','to be continued','субтитры сделал','субтитры создавал','© nvenc','amara.org'];
+
+function fmtTime(sec){
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);
+  return h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;
+}
+
+async function transcribeWithGroq(blob, apiKey, offsetSec=0){
+  const MAX=24*1024*1024;
+  if(blob.size<=MAX){
+    $('detail1').textContent='Отправка на транскрипцию...';
+    return await transcribeChunk(blob,apiKey,'audio.wav',offsetSec);
+  }
+  const BPS=32000,HDR=44;
+  const chunkSecs=Math.min(600,Math.floor((MAX-HDR)/BPS));
+  const chunkBytes=chunkSecs*BPS;
+  const total=Math.ceil((blob.size-HDR)/chunkBytes);
+  const headerBytes=new Uint8Array(await blob.slice(0,HDR).arrayBuffer());
+  let plainOut='',tsOut='';
+  for(let i=0;i<total;i++){
+    const start=HDR+i*chunkBytes,end=Math.min(HDR+(i+1)*chunkBytes,blob.size);
+    const dataArr=new Uint8Array(await blob.slice(start,end).arrayBuffer());
+    const cbuf=new ArrayBuffer(HDR+dataArr.length);
+    const dv=new DataView(cbuf),ca=new Uint8Array(cbuf);
+    ca.set(headerBytes,0);dv.setUint32(4,36+dataArr.length,true);dv.setUint32(40,dataArr.length,true);ca.set(dataArr,HDR);
+    $('detail1').textContent=`Транскрипция части ${i+1}/${total}...`;
+    const r=await transcribeChunk(new Blob([cbuf],{type:'audio/wav'}),apiKey,`part${i+1}.wav`,offsetSec+i*chunkSecs);
+    plainOut+=(i>0?' ':'')+r.plain; tsOut+=(i>0?'\n':'')+r.timestamped;
+  }
+  return{plain:plainOut,timestamped:tsOut};
+}
+
+async function transcribeChunk(blob,apiKey,filename,offsetSec=0){
+  const fd=new FormData();
+  fd.append('file',blob,filename||'audio.wav');
+  fd.append('model','whisper-large-v3');
+  fd.append('language','ru');
+  fd.append('response_format','verbose_json');
+  fd.append('temperature','0');
+  const res=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{
+    method:'POST',headers:{'Authorization':`Bearer ${apiKey}`},body:fd
+  });
+  if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Groq: ${err.error?.message||res.statusText}`);}
+  const data=await res.json();
+  if(data.segments&&data.segments.length){
+    const segs=data.segments.filter(s=>!ARTIFACTS.some(a=>s.text.toLowerCase().includes(a)));
+    const plain=segs.map(s=>s.text.trim()).join(' ');
+    let tsLines=[],block=[],blockStart=null;
+    for(const seg of segs){
+      const abs=offsetSec+seg.start;
+      if(blockStart===null)blockStart=abs;
+      block.push(seg.text.trim());
+      if((abs-blockStart+seg.end-seg.start)>=30||seg===segs[segs.length-1]){
+        tsLines.push(`[${fmtTime(blockStart)}] ${block.join(' ')}`);
+        block=[];blockStart=null;
+      }
+    }
+    return{plain,timestamped:tsLines.join('\n')};
+  }
+  const plain=ARTIFACTS.reduce((t,a)=>t.replace(new RegExp(a,'gi'),''),data.text||'').trim();
+  return{plain,timestamped:`[${fmtTime(offsetSec)}] ${plain}`};
+}
+
+// ── SHARED PROMPT ─────────────────────────────────────────────────
+const KZ_NOTE = `ВАЖНО: Участники совещания могут иметь казахские имена и фамилии (например: Мадияр, Алмас, Сырлыбай, Жанболат, Айгерим, Нурлан, Бауыржан, Дина, Гульнара и т.д.), а также русские имена. Распознай всех участников корректно, не искажай казахские имена. Должности могут быть на русском или казахском языке.`;
+
+function buildPrompt(transcript, context, fileDate) {
+  const today=new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const dateHint=fileDate?`Дата файла из метаданных: ${fileDate}. `:'';
+  const ctx=context?`Контекст: ${context}\n\n`:'';
+  return `${ctx}${KZ_NOTE}
+
+${dateHint}Дата сегодня: ${today}.
+Транскрипт совещания ниже. Верни СТРОГО JSON без markdown без пояснений.
+
+Транскрипт:
+${transcript.slice(0,80000)}
+
+JSON:
+{
+  "date": "дата совещания из текста, если нет — дата файла или сегодня",
+  "topic": "тема совещания — одна строка",
+  "participants": ["Имя Фамилия (должность если есть)"],
+  "context": "2-3 предложения — повод и цель совещания",
+  "summary": "5-8 предложений — что обсуждалось и итоги",
+  "conclusion": "3-5 предложений — общий вывод, что достигнуто, что осталось открытым",
+  "agenda_items": [{"question":"вопрос повестки","decision":"принятое решение","responsible":"ответственный или Не указан"}],
+  "decisions": ["решение 1", "решение 2"],
+  "tasks": [{"title":"задача","responsible":"ответственный или Не указан","deadline":"срок или Не указан","priority":"Высокий или Средний или Низкий"}]
+}`;
+}
+
+function parseJSON(raw) {
+  let clean=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+  if(s!==-1&&e!==-1)clean=clean.slice(s,e+1);
+  try{return JSON.parse(clean);}
+  catch(err){
+    let r=clean,ob=0,ob2=0,inStr=false,esc=false;
+    for(let i=0;i<r.length;i++){
+      const c=r[i];
+      if(esc){esc=false;continue;}if(c==='\\'){esc=true;continue;}
+      if(c==='"'){inStr=!inStr;continue;}if(inStr)continue;
+      if(c==='{')ob++;else if(c==='}')ob--;else if(c==='[')ob2++;else if(c===']')ob2--;
+    }
+    if(inStr)r+='"';
+    for(let i=0;i<ob2;i++)r+=']';for(let i=0;i<ob;i++)r+='}';
+    try{return JSON.parse(r);}
+    catch(e2){
+      const get=k=>{const m=raw.match(new RegExp(`"${k}"\\s*:\\s*"([^"]{0,500})"`));return m?m[1]:'';};
+      return{date:get('date'),topic:get('topic'),participants:[],context:get('context'),
+             summary:get('summary')||'Ответ обрезан — попробуй ещё раз.',
+             conclusion:get('conclusion'),agenda_items:[],decisions:[],tasks:[]};
+    }
+  }
+}
+
+// ── CLAUDE ANALYSIS ───────────────────────────────────────────────
+async function analyzeWithClaude(transcript, context, apiKey, fileDate=''){
+  const prompt=buildPrompt(transcript,context,fileDate);
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:16000,messages:[{role:'user',content:prompt}]})
+  });
+  if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Claude API: ${err.error?.message||res.statusText}`);}
+  const data=await res.json();
+  return parseJSON(data.content.map(b=>b.text||'').join(''));
+}
+
+// ── GEMINI ANALYSIS ───────────────────────────────────────────────
+async function analyzeWithGemini(transcript, context, apiKey, fileDate=''){
+  const prompt=buildPrompt(transcript,context,fileDate);
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      contents:[{parts:[{text:prompt}]}],
+      generationConfig:{temperature:0.1,maxOutputTokens:16000}
+    })
+  });
+  if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Gemini API: ${err.error?.message||res.statusText}`);}
+  const data=await res.json();
+  const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  if(!raw)throw new Error('Gemini вернул пустой ответ');
+  return parseJSON(raw);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function renderResults(transcript, a){
+  $('ovDate').textContent=a.date||'—';
+  $('ovTopic').textContent=a.topic||'—';
+  $('ovParticipants').textContent=(a.participants||[]).length?(a.participants||[]).join(', '):'—';
+  $('ovTasks').textContent=(a.tasks||[]).length;
+  $('ovDecisions').textContent=(a.decisions||[]).length;
+
+  $('protoDate').textContent=a.date||'—';
+  $('protoTopic').textContent=a.topic||'—';
+  $('protoParticipants').textContent=(a.participants||[]).join(', ')||'—';
+  const agEl=$('protoAgenda');agEl.innerHTML='';
+  (a.agenda_items||[]).forEach((item,i)=>{
+    agEl.innerHTML+=`<div class="agenda-item">
+      <div class="agenda-q"><span class="agenda-num">${i+1}.</span>${item.question}</div>
+      <div class="agenda-d">✅ ${item.decision}</div>
+      ${item.responsible&&item.responsible!=='Не указан'?`<div class="agenda-r">👤 ${item.responsible}</div>`:''}
+    </div>`;
+  });
+  if(!(a.agenda_items||[]).length)agEl.innerHTML='<div style="color:var(--text-muted);font-size:12px">Повестка не определена</div>';
+  $('contextText').textContent=a.context||'—';
+  $('summaryText').textContent=a.summary||'—';
+  $('conclusionText').textContent=a.conclusion||'—';
+
+  const dec=$('decisionsList');dec.innerHTML='';
+  (a.decisions||[]).forEach((d,i)=>{dec.innerHTML+=`<div class="decision-item"><span class="decision-num">${i+1}.</span><span>${d}</span></div>`;});
+  if(!(a.decisions||[]).length)dec.innerHTML='<div class="decision-item"><span style="color:var(--text-muted)">Решений не зафиксировано</span></div>';
+
+  const tl=$('tasksList');tl.innerHTML='';
+  (a.tasks||[]).forEach(t=>{
+    tl.innerHTML+=`<div class="task-item">
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">
+        <span class="task-tag responsible">👤 ${t.responsible}</span>
+        <span class="task-tag deadline">📅 ${t.deadline}</span>
+        <span class="task-tag priority">⚡ ${t.priority}</span>
+      </div>
+    </div>`;
+  });
+  if(!(a.tasks||[]).length)tl.innerHTML='<div class="task-item"><div class="task-title" style="color:var(--text-muted)">Задач не зафиксировано</div></div>';
+  $('transcriptText').textContent=transcript;
+}
+
+function copyEl(id){navigator.clipboard.writeText($(id).textContent);}
+function copyProtocol(){
+  const d=$('protoDate').textContent,tp=$('protoTopic').textContent,pt=$('protoParticipants').textContent;
+  let txt=`ПРОТОКОЛ СОВЕЩАНИЯ\nДата: ${d}\nТема: ${tp}\nУчастники: ${pt}\n\nПОВЕСТКА:\n`;
+  $('protoAgenda').querySelectorAll('.agenda-item').forEach(el=>{
+    txt+=`\n${el.querySelector('.agenda-q')?.textContent?.trim()}\n`;
+    txt+=`  Решение: ${el.querySelector('.agenda-d')?.textContent?.trim()}\n`;
+    const r=el.querySelector('.agenda-r');if(r)txt+=`  ${r.textContent.trim()}\n`;
+  });
+  navigator.clipboard.writeText(txt);
+}
+
+function downloadTranscript() {
+  const text = $('transcriptText').textContent;
+  const topic = $('ovTopic').textContent || 'совещание';
+  const date  = $('ovDate').textContent || '';
+  const filename = `транскрипт_${date}_${topic}.txt`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.txt';
+  const header = `ТРАНСКРИПТ СОВЕЩАНИЯ\nДата: ${date}\nТема: ${topic}\n${'='.repeat(50)}\n\n`;
+  downloadFile(header + text, filename);
+}
+
+function downloadFullReport() {
+  const date         = $('ovDate').textContent || '';
+  const topic        = $('ovTopic').textContent || '—';
+  const participants = $('ovParticipants').textContent || '—';
+  const context      = $('contextText').textContent || '—';
+  const summary      = $('summaryText').textContent || '—';
+  const conclusion   = $('conclusionText').textContent || '—';
+  const transcript   = $('transcriptText').textContent || '';
+
+  let report = '';
+  const sep = '='.repeat(60);
+  const sep2 = '-'.repeat(40);
+
+  report += `${sep}\nПРОТОКОЛ И АНАЛИЗ СОВЕЩАНИЯ\n${sep}\n`;
+  report += `Дата: ${date}\nТема: ${topic}\nУчастники: ${participants}\n\n`;
+  report += `КОНТЕКСТ\n${sep2}\n${context}\n\n`;
+  report += `КРАТКОЕ РЕЗЮМЕ\n${sep2}\n${summary}\n\n`;
+  report += `ЗАКЛЮЧЕНИЕ\n${sep2}\n${conclusion}\n\n`;
+  report += `ВОПРОСЫ ПОВЕСТКИ И РЕШЕНИЯ\n${sep2}\n`;
+  $('protoAgenda').querySelectorAll('.agenda-item').forEach((el,i) => {
+    report += `\n${el.querySelector('.agenda-q')?.textContent?.trim()}\n`;
+    report += `  Решение: ${el.querySelector('.agenda-d')?.textContent?.trim()}\n`;
+    const r = el.querySelector('.agenda-r');if(r)report+=`  ${r.textContent.trim()}\n`;
+  });
+  report += `\nКЛЮЧЕВЫЕ РЕШЕНИЯ\n${sep2}\n`;
+  $('decisionsList').querySelectorAll('.decision-item').forEach(el => { report += `${el.textContent.trim()}\n`; });
+  report += `\nЗАДАЧИ И ОТВЕТСТВЕННЫЕ\n${sep2}\n`;
+  $('tasksList').querySelectorAll('.task-item').forEach((el,i) => {
+    const title = el.querySelector('.task-title')?.textContent?.trim() || '';
+    const tags  = Array.from(el.querySelectorAll('.task-tag')).map(t=>t.textContent.trim()).join('  ');
+    report += `\n${i+1}. ${title}\n   ${tags}\n`;
+  });
+  report += `\n${sep}\nПОЛНЫЙ ТРАНСКРИПТ\n${sep}\n${transcript}`;
+
+  const filename = `отчёт_${date}_${topic}.txt`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.txt';
+  downloadFile(report, filename);
+}
+
+function downloadFile(text, filename) {
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function resetAll(){
+  selectedFiles=[];chatHistory=[];chatTranscript='';chatAnalysis=null;
+  $('fileName').textContent='';
+  uploadZone.classList.remove('has-file');
+  fileInput.value='';
+  $('progressSection').classList.remove('visible');
+  $('results').classList.remove('visible');
+  $('transcriptOnlyResult').classList.remove('visible');
+  updateBtn();hideError();
+  for(let i=1;i<=3;i++)setStep(i,'','Ожидание...');
+  const msgs=$('chatMessages');
+  if(msgs)msgs.innerHTML='<div class="chat-empty" id="chatEmpty">Задайте вопрос по содержанию совещания</div>';
+  const sugg=$('chatSuggestions');if(sugg)sugg.style.display='flex';
+}
+
+// ── CHAT ──────────────────────────────────────────────────────────
+function initChat(transcript,analysis,apiKey){
+  chatTranscript=transcript;chatAnalysis=analysis;chatApiKey=apiKey;chatHistory=[];
+}
+function useSuggestion(el){
+  $('chatInput').value=el.textContent;
+  $('chatSuggestions').style.display='none';
+  sendChat();
+}
+function addMessage(role,text,thinking=false){
+  const empty=$('chatEmpty');if(empty)empty.remove();
+  const msgs=$('chatMessages');
+  const div=document.createElement('div');
+  div.className=`chat-msg ${role}`+(thinking?' thinking':'');
+  div.innerHTML=`<div class="chat-avatar">${role==='user'?'👤':'🤖'}</div><div class="chat-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+  return div;
+}
+async function sendChat(){
+  const input=$('chatInput'),sendBtn=$('chatSend');
+  const text=input.value.trim();
+  if(!text||!chatApiKey){if(!chatApiKey)showError('Выполните анализ сначала');return;}
+  input.value='';input.style.height='auto';sendBtn.disabled=true;
+  $('chatSuggestions').style.display='none';
+  addMessage('user',text);
+  const thinkingEl=addMessage('ai','⏳ думаю...',true);
+
+  const sysPrompt=`Ты помощник по анализу совещания. Отвечай кратко и по делу на русском языке.
+${KZ_NOTE}
+
+Совещание:
+Дата: ${chatAnalysis?.date||'—'}  Тема: ${chatAnalysis?.topic||'—'}
+Участники: ${(chatAnalysis?.participants||[]).join(', ')||'—'}
+Резюме: ${chatAnalysis?.summary||'—'}
+
+Полный транскрипт:
+${chatTranscript.slice(0,60000)}`;
+
+  chatHistory.push({role:'user',content:text});
+  try{
+    let reply='';
+    if(currentModel==='gemini'){
+      const msgs=chatHistory.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${chatApiKey}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          systemInstruction:{parts:[{text:sysPrompt}]},
+          contents:msgs,
+          generationConfig:{temperature:0.2,maxOutputTokens:2048}
+        })
+      });
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error?.message||r.statusText);
+      reply=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    } else {
+      const r=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':chatApiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2048,system:sysPrompt,messages:chatHistory})
+      });
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error?.message||r.statusText);
+      reply=d.content.map(b=>b.text||'').join('').trim();
+    }
+    chatHistory.push({role:'assistant',content:reply});
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.querySelector('.chat-bubble').innerHTML=reply.replace(/\n/g,'<br>');
+    $('chatMessages').scrollTop=$('chatMessages').scrollHeight;
+  }catch(e){
+    thinkingEl.querySelector('.chat-bubble').innerHTML=`<span style="color:var(--danger)">Ошибка: ${e.message}</span>`;
+  }
+  sendBtn.disabled=false;input.focus();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  loadKeys();
+  renderHistory();
+  selectAppMode('transcript'); // default mode
+  const inp=$('chatInput');
+  if(inp){
+    inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px';});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}});
+  }
+});
+</script>
+</body>
+</html>
