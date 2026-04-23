@@ -534,6 +534,8 @@ input::placeholder{color:var(--text-dim);}
 <button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none;">🔒 Выйти</button>
 
 <script>
+function sanitizeKey(k){return(k||'').replace(/[^\x20-\x7E]/g,'').trim();}
+
 // ══════════════════════════════════════════════════════════════════
 // !! СМЕНИ ПАРОЛЬ ЗДЕСЬ перед деплоем !!
 // Пароль должен знать только твой отдел.
@@ -761,9 +763,10 @@ function selectProvider(p) {
   updateBtn();
 }
 function getTranscriptKey() {
-  return currentProvider === 'groq'
-    ? (document.getElementById('groqKey')?.value.trim() || '')
-    : (document.getElementById('deepgramKey')?.value.trim() || '');
+  const raw = currentProvider === 'groq'
+    ? (document.getElementById('groqKey')?.value || '')
+    : (document.getElementById('deepgramKey')?.value || '');
+  return sanitizeKey(raw);
 }
 function selectProtoModel(m) {
   currentProtoModel = m;
@@ -783,9 +786,10 @@ function selectModel(model) {
 }
 
 function getApiKey() {
-  return currentModel === 'gemini'
-    ? ($('geminiKey')?.value.trim() || '')
-    : ($('anthropicKey')?.value.trim() || '');
+  const raw = currentModel === 'gemini'
+    ? ($('geminiKey')?.value || '')
+    : ($('anthropicKey')?.value || '');
+  return sanitizeKey(raw);
 }
 
 function updateBtn() {
@@ -1030,7 +1034,7 @@ async function transcribeChunk(blob,apiKey,filename,offsetSec=0){
   fd.append('response_format','verbose_json');
   fd.append('temperature','0');
   const res=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{
-    method:'POST',headers:{'Authorization':`Bearer ${apiKey}`},body:fd
+    method:'POST',headers:{'Authorization':`Bearer ${sanitizeKey(apiKey)}`},body:fd
   });
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Groq: ${err.error?.message||res.statusText}`);}
   const data=await res.json();
@@ -1121,7 +1125,7 @@ async function analyzeWithClaude(transcript, context, apiKey, fileDate=''){
   const prompt=buildPrompt(transcript,context,fileDate);
   const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    headers:{'Content-Type':'application/json','x-api-key':sanitizeKey(apiKey),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:16000,messages:[{role:'user',content:prompt}]})
   });
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Claude API: ${err.error?.message||res.statusText}`);}
@@ -1393,7 +1397,7 @@ async function deepgramChunk(blob, apiKey, offsetSec=0) {
   });
   const res = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
     method:'POST',
-    headers:{'Authorization':`Token ${apiKey}`,'Content-Type':'audio/wav'},
+    headers:{'Authorization':`Token ${sanitizeKey(apiKey)}`,'Content-Type':'audio/wav'},
     body: blob
   });
   if (!res.ok) {
@@ -1455,7 +1459,7 @@ async function deepgramChunk(blob, apiKey, offsetSec=0) {
 // ── MAKE PROTOCOL FROM EXISTING TRANSCRIPT ──────────────────────
 // Called from the transcript-only result box — no re-transcription!
 async function makeProtocolFromTranscript() {
-  const apiKey  = $('ptApiKey').value.trim();
+  const apiKey  = sanitizeKey($('ptApiKey').value);
   const context = $('ptContext').value.trim();
   if (!apiKey)  { showError('Введите API ключ'); return; }
   if (!savedPlainTranscript) { showError('Нет транскрипта'); return; }
