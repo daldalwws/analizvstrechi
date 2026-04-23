@@ -174,7 +174,26 @@ input::placeholder{color:var(--text-dim);}
 .chat-send:hover:not(:disabled){background:#f0d48a;}
 .chat-send:disabled{opacity:.4;cursor:not-allowed;}
 /* MODEL SELECTOR */
-.model-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+  /* ── PROVIDER SELECTOR ─── */
+  .provider-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+  @media(max-width:500px){.provider-selector{grid-template-columns:1fr;}}
+  .provider-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;}
+  .provider-opt:hover{border-color:var(--text-muted);}
+  .provider-opt.active{border-color:var(--accent2);background:rgba(110,181,255,.06);}
+  .provider-name{font-size:12px;color:var(--text);margin-bottom:3px;}
+  .provider-desc{font-size:10px;color:var(--text-dim);line-height:1.5;}
+  .provider-badge{font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(110,181,255,.15);color:var(--accent2);border:1px solid rgba(110,181,255,.2);margin-left:6px;vertical-align:middle;}
+  .provider-key-field{display:none;}
+  .provider-key-field.visible{display:flex;}
+  /* ── PROTOCOL PROMPT ─── */
+  .proto-prompt-box{margin-top:20px;padding-top:20px;border-top:1px solid var(--border);}
+  .proto-prompt-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;}
+  .proto-progress{display:none;margin-top:12px;padding:12px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted);}
+  .proto-progress.visible{display:block;}
+  .btn-make-proto{width:100%;padding:14px;background:var(--accent);color:#0d0f14;border:none;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+  .btn-make-proto:hover:not(:disabled){background:#f0d48a;transform:translateY(-1px);}
+  .btn-make-proto:disabled{opacity:.4;cursor:not-allowed;}
+  .model-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
 @media(max-width:500px){.model-selector{grid-template-columns:1fr;}}
 .model-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;}
 .model-opt:hover{border-color:var(--text-muted);}
@@ -218,8 +237,7 @@ input::placeholder{color:var(--text-dim);}
 <!-- ══ AUTH GATE ══════════════════════════════════════════════════ -->
 <div class="auth-gate" id="authGate">
   <div class="auth-box">
-    <div class="auth-logo">
-    </div>
+    <div class="auth-logo">Meeting Analyzer</div>
     <h2 class="auth-title">Анализ <span>совещания</span></h2>
     <p class="auth-sub">Инструмент для сотрудников отдела.<br>Введите пароль доступа.</p>
     <input class="auth-input" type="password" id="authInput" placeholder="••••••••" autocomplete="off">
@@ -232,7 +250,7 @@ input::placeholder{color:var(--text-dim);}
 <div class="app" id="mainApp" style="display:none;">
 
 <header>
-  <div class="header-label"></div>
+  <div class="header-label">Meeting Analyzer</div>
   <h1>Анализ <span>совещания</span></h1>
   <div class="header-sub">Загрузите аудио — получите транскрипт или полный протокол с задачами</div>
 </header>
@@ -255,16 +273,32 @@ input::placeholder{color:var(--text-dim);}
 <div class="panel">
   <div class="panel-title">⚙ Настройки API</div>
   <div class="grid2">
-    <div class="field">
-      <label>GROQ API KEY (транскрипция — обязательно)</label>
-      <input type="password" id="groqKey" placeholder="gsk_..." autocomplete="off">
-    </div>
-    <div class="field" style="display:flex;align-items:flex-end;">
-      <div>
-        <button class="save-keys-btn" onclick="saveKeys()" style="margin-top:20px;">💾 Сохранить ключи</button>
-        <span class="save-keys-hint" id="saveKeysHint" style="margin-left:10px;margin-top:20px;"></span>
+    <div class="field full">
+      <label>Провайдер транскрипции</label>
+      <div class="provider-selector">
+        <div class="provider-opt active" id="provGroq" onclick="selectProvider('groq')">
+          <div class="provider-name">Groq Whisper <span class="provider-badge">Быстрее</span></div>
+          <div class="provider-desc">Whisper Large v3 · console.groq.com</div>
+        </div>
+        <div class="provider-opt" id="provDeepgram" onclick="selectProvider('deepgram')">
+          <div class="provider-name">Deepgram Nova-3 <span class="provider-badge">Точнее</span></div>
+          <div class="provider-desc">Nova-3 · deepgram.com · Диаризация спикеров ✓</div>
+        </div>
       </div>
     </div>
+    <div class="field provider-key-field visible" id="groqKeyField">
+      <label>GROQ API KEY</label>
+      <input type="password" id="groqKey" placeholder="gsk_..." autocomplete="off">
+    </div>
+    <div class="field provider-key-field" id="deepgramKeyField">
+      <label>DEEPGRAM API KEY</label>
+      <input type="password" id="deepgramKey" placeholder="..." autocomplete="off">
+    </div>
+    <div class="field" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <button class="save-keys-btn" onclick="saveKeys()">💾 Сохранить ключи</button>
+      <span class="save-keys-hint" id="saveKeysHint"></span>
+    </div>
+    <div></div>
 
     <!-- ANALYSIS-ONLY FIELDS -->
     <div class="field analysis-only" id="fieldAnthropic">
@@ -346,6 +380,28 @@ input::placeholder{color:var(--text-dim);}
     <button class="copy-btn" style="margin-top:0" onclick="copyEl('transcriptOnlyText')">Копировать</button>
     <button class="copy-btn" style="margin-top:0" onclick="downloadTranscriptOnly()">⬇ Скачать .txt</button>
   </div>
+  <!-- CREATE PROTOCOL FROM TRANSCRIPT – no re-transcription! -->
+  <div class="proto-prompt-box">
+    <div class="proto-prompt-label">🔍 Создать протокол по этому транскрипту (без повторной транскрипции)</div>
+    <div class="model-selector" style="margin-bottom:12px;">
+      <div class="model-opt active" id="ptOptClaude" onclick="selectProtoModel('claude')">
+        <div class="model-name">Claude Sonnet <span class="model-badge expensive">Точнее</span></div>
+        <div class="model-desc">Anthropic API Key</div>
+      </div>
+      <div class="model-opt" id="ptOptGemini" onclick="selectProtoModel('gemini')">
+        <div class="model-name">Gemini 2.5 Flash <span class="model-badge">Дешевле</span></div>
+        <div class="model-desc">Google AI API Key</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;" id="ptKeyLabel">Anthropic API Key</label>
+      <input type="password" id="ptApiKey" placeholder="sk-ant-..." autocomplete="off" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+    </div>
+    <input type="text" id="ptContext" placeholder="Контекст совещания (необязательно)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;margin-bottom:12px;">
+    <button class="btn-make-proto" id="btnMakeProto" onclick="makeProtocolFromTranscript()">🔍 &nbsp; Создать протокол</button>
+    <div class="proto-progress" id="protoProgress">⏳ Анализируем...</div>
+  </div>
+
   <button class="btn-reset" onclick="resetAll()" style="margin-top:16px;">↺ &nbsp; Новое совещание</button>
 </div>
 
@@ -644,15 +700,20 @@ function clearHistory() {
 const $ = id => document.getElementById(id);
 let selectedFiles = [];
 let currentModel = 'claude';
+let currentProvider = 'groq';
+let currentProtoModel = 'claude';
+let savedPlainTranscript = '', savedTranscriptFilename = '';
 let chatHistory = [], chatTranscript = '', chatAnalysis = null, chatApiKey = '';
 let lastTranscriptFilename = '';
 
 // ── API KEY PERSISTENCE ───────────────────────────────────────────
 function saveKeys() {
   const groq      = $('groqKey').value.trim();
+  const deepgram  = $('deepgramKey')?.value.trim() || '';
   const anthropic = $('anthropicKey').value.trim();
   const gemini    = $('geminiKey')?.value.trim() || '';
   if (groq)      localStorage.setItem('groq_key', groq);
+  if (deepgram)  localStorage.setItem('deepgram_key', deepgram);
   if (anthropic) localStorage.setItem('anthropic_key', anthropic);
   if (gemini)    localStorage.setItem('gemini_key', gemini);
   const hint = $('saveKeysHint');
@@ -663,9 +724,11 @@ function saveKeys() {
 
 function loadKeys() {
   const groq      = localStorage.getItem('groq_key');
+  const deepgram  = localStorage.getItem('deepgram_key');
   const anthropic = localStorage.getItem('anthropic_key');
   const gemini    = localStorage.getItem('gemini_key');
   if (groq && $('groqKey'))           $('groqKey').value = groq;
+  if (deepgram && $('deepgramKey'))   $('deepgramKey').value = deepgram;
   if (anthropic && $('anthropicKey')) $('anthropicKey').value = anthropic;
   if (gemini && $('geminiKey'))       $('geminiKey').value = gemini;
   if (groq || anthropic || gemini) updateBtn();
@@ -685,6 +748,33 @@ function autoSave() {
 }
 
 // ── MODEL SELECTOR ────────────────────────────────────────────────
+// ── PROVIDER SELECTOR ──────────────────────────────────────
+function selectProvider(p) {
+  currentProvider = p;
+  document.getElementById('provGroq').classList.toggle('active', p === 'groq');
+  document.getElementById('provDeepgram').classList.toggle('active', p === 'deepgram');
+  document.getElementById('groqKeyField').classList.toggle('visible', p === 'groq');
+  document.getElementById('deepgramKeyField').classList.toggle('visible', p === 'deepgram');
+  // Update provider description in step
+  const s1d = document.getElementById('detail1');
+  if (s1d) s1d.textContent = p === 'deepgram' ? 'Nova-3 + диаризация спикеров' : 'Whisper Large v3';
+  updateBtn();
+}
+function getTranscriptKey() {
+  return currentProvider === 'groq'
+    ? (document.getElementById('groqKey')?.value.trim() || '')
+    : (document.getElementById('deepgramKey')?.value.trim() || '');
+}
+function selectProtoModel(m) {
+  currentProtoModel = m;
+  document.getElementById('ptOptClaude').classList.toggle('active', m === 'claude');
+  document.getElementById('ptOptGemini').classList.toggle('active', m === 'gemini');
+  const lbl = document.getElementById('ptKeyLabel');
+  const inp = document.getElementById('ptApiKey');
+  if (m === 'claude') { lbl.textContent='Anthropic API Key'; inp.placeholder='sk-ant-...'; const s=localStorage.getItem('anthropic_key'); if(s)inp.value=s; }
+  else { lbl.textContent='Google AI API Key'; inp.placeholder='AIza...'; const s=localStorage.getItem('gemini_key'); if(s)inp.value=s; }
+}
+
 function selectModel(model) {
   currentModel = model;
   $('optClaude').classList.toggle('active', model==='claude');
@@ -700,7 +790,7 @@ function getApiKey() {
 
 function updateBtn() {
   const hasFiles = selectedFiles.length > 0;
-  const hasGroq  = $('groqKey').value.trim().length > 0;
+  const hasGroq  = getTranscriptKey().length > 0;
   const hasApi   = appMode === 'transcript' ? true : getApiKey().length > 0;
   $('analyzeBtn').disabled = !(hasFiles && hasGroq && hasApi);
 }
@@ -773,10 +863,11 @@ function downloadTranscriptOnly() {
 $('analyzeBtn').addEventListener('click', analyze);
 
 async function analyze() {
-  const groqKey  = $('groqKey').value.trim();
+  const trKey    = getTranscriptKey();  // Groq or Deepgram key depending on selected provider
   const apiKey   = getApiKey();
   const context  = $('meetingContext').value.trim();
   const modelLabel = currentModel === 'gemini' ? 'Gemini 2.5 Flash' : 'Claude Sonnet';
+  const providerLabel = currentProvider === 'deepgram' ? 'Deepgram Nova-3' : 'Groq Whisper';
 
   hideError();
   $('analyzeBtn').disabled = true;
@@ -784,12 +875,14 @@ async function analyze() {
   $('results').classList.remove('visible');
   $('transcriptOnlyResult').classList.remove('visible');
 
-  // In transcript mode, step 3 is hidden; step 2 becomes "done" quickly
+  // Update step 1 label with actual provider name
+  if ($('step1text')) $('step1text').textContent = `Транскрипция — ${providerLabel}`;
+
   if (appMode === 'transcript') {
     $('step2text').textContent = 'Формирование транскрипта';
     $('step3') && ($('step3').style.display = 'none');
   } else {
-    $('step2text').textContent = 'Анализ транскрипта';
+    $('step2text').textContent = `Анализ — ${modelLabel}`;
     $('step3') && ($('step3').style.display = 'flex');
   }
 
@@ -810,7 +903,11 @@ async function analyze() {
       const compressed=await compressAudio(file);
       const estDur=Math.max((compressed.size-44)/32000, 0);
       setStep(1,'active',`Транскрипция${lbl}...`);
-      const result=await transcribeWithGroq(compressed, groqKey, totalOffsetSec);
+      const provLbl = currentProvider === 'deepgram' ? 'Deepgram' : 'Groq';
+      $('detail1').textContent = `${provLbl}: файл ${fi+1}/${selectedFiles.length}...`;
+      const result = currentProvider === 'deepgram'
+        ? await transcribeWithDeepgram(compressed, trKey, totalOffsetSec)
+        : await transcribeWithGroq(compressed, trKey, totalOffsetSec);
       plainTranscript+=(fi>0?' ':'')+result.plain;
       tsTranscript+=(fi>0?'\n':'')+result.timestamped;
       totalOffsetSec+=estDur;
@@ -825,6 +922,12 @@ async function analyze() {
       setStep(2,'done','Готово');
       $('progressSection').classList.remove('visible');
       const fname = selectedFiles[0]?.name || 'совещание';
+      // Save plain (no timestamps) for protocol-from-transcript
+      savedPlainTranscript = plainTranscript;
+      savedTranscriptFilename = fname;
+      // Prefill protocol API key if already saved
+      const _savedAnt = localStorage.getItem('anthropic_key');
+      if (_savedAnt && $('ptApiKey')) $('ptApiKey').value = _savedAnt;
       showTranscriptOnly(tsTranscript, fname);
       saveTranscriptToHistory(tsTranscript, fname);
       $('analyzeBtn').disabled = false;
@@ -954,28 +1057,37 @@ async function transcribeChunk(blob,apiKey,filename,offsetSec=0){
 const KZ_NOTE = `ВАЖНО: Участники совещания могут иметь казахские имена и фамилии (например: Мадияр, Алмас, Сырлыбай, Жанболат, Айгерим, Нурлан, Бауыржан, Дина, Гульнара и т.д.), а также русские имена. Распознай всех участников корректно, не искажай казахские имена. Должности могут быть на русском или казахском языке.`;
 
 function buildPrompt(transcript, context, fileDate) {
-  const today=new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
-  const dateHint=fileDate?`Дата файла из метаданных: ${fileDate}. `:'';
-  const ctx=context?`Контекст: ${context}\n\n`:'';
-  return `${ctx}${KZ_NOTE}
+  const today = new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const dateHint = fileDate ? `Дата файла: ${fileDate}. ` : '';
+  const ctx = context ? `Контекст: ${context}\n\n` : '';
 
-${dateHint}Дата сегодня: ${today}.
-Транскрипт совещания ниже. Верни СТРОГО JSON без markdown без пояснений.
+  // Detect if transcript is diarized (contains "Спикер N:")
+  const isDiarized = /Спикер\s+\d+:/i.test(transcript);
+  const diarizeNote = isDiarized
+    ? `\nТранскрипт содержит метки спикеров (Спикер 1:, Спикер 2: и т.д.). Используй их для определения участников.\nЕсли имена спикеров не упоминаются в тексте — записывай их как "Спикер 1", "Спикер 2" и т.д.\n`
+    : `\nЕсли имена участников прямо называются в тексте — запиши их. Если нет — напиши ["Участники не определены"].\n`;
+
+  return `${ctx}${KZ_NOTE}${diarizeNote}
+${dateHint}Сегодня: ${today}.
+
+ЗАДАЧА: Проанализируй транскрипт совещания и верни JSON.
+ВАЖНО ДЛЯ GEMINI: Заполни ВСЕ поля реальными данными из текста. НЕ возвращай шаблонные значения типа "Имя Фамилия" или "вопрос повестки" — только реальные данные.
+Верни ТОЛЬКО JSON, без markdown, без пояснений, без тройных кавычек.
 
 Транскрипт:
-${transcript.slice(0,80000)}
+${transcript.slice(0, 80000)}
 
-JSON:
+Верни JSON в точно таком формате (все поля обязательны):
 {
-  "date": "дата совещания из текста, если нет — дата файла или сегодня",
-  "topic": "тема совещания — одна строка",
-  "participants": ["Имя Фамилия (должность если есть)"],
-  "context": "2-3 предложения — повод и цель совещания",
-  "summary": "5-8 предложений — что обсуждалось и итоги",
-  "conclusion": "3-5 предложений — общий вывод, что достигнуто, что осталось открытым",
-  "agenda_items": [{"question":"вопрос повестки","decision":"принятое решение","responsible":"ответственный или Не указан"}],
-  "decisions": ["решение 1", "решение 2"],
-  "tasks": [{"title":"задача","responsible":"ответственный или Не указан","deadline":"срок или Не указан","priority":"Высокий или Средний или Низкий"}]
+  "date": "${fileDate || today}",
+  "topic": "РЕАЛЬНАЯ тема из текста",
+  "participants": ["РЕАЛЬНЫЕ имена или Спикер 1, Спикер 2 если имена не названы"],
+  "context": "РЕАЛЬНЫЙ контекст 2-3 предложения",
+  "summary": "РЕАЛЬНОЕ резюме 5-8 предложений",
+  "conclusion": "РЕАЛЬНЫЙ вывод 3-5 предложений",
+  "agenda_items": [{"question": "РЕАЛЬНЫЙ вопрос", "decision": "РЕАЛЬНОЕ решение", "responsible": "имя или Не указан"}],
+  "decisions": ["РЕАЛЬНОЕ решение 1"],
+  "tasks": [{"title": "РЕАЛЬНАЯ задача", "responsible": "имя или Не указан", "deadline": "срок или Не указан", "priority": "Высокий"}]
 }`;
 }
 
@@ -1246,6 +1358,133 @@ document.addEventListener('DOMContentLoaded',()=>{
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}});
   }
 });
+
+// ── DEEPGRAM TRANSCRIPTION ──────────────────────────────────────
+// Uses REST API: POST /v1/listen with raw audio bytes (not WebSocket)
+async function transcribeWithDeepgram(blob, apiKey, offsetSec=0){
+  const MAX = 100 * 1024 * 1024; // chunk at 100MB
+  if (blob.size <= MAX) {
+    $('detail1').textContent = 'Отправка в Deepgram...';
+    return await deepgramChunk(blob, apiKey, offsetSec);
+  }
+  // chunk size = fill up to MAX: 100MB / 32000 bytes/sec ≈ 3125 sec (52 min)
+  const BPS=32000, HDR=44;
+  const chunkSecs = Math.floor((MAX - HDR) / BPS); // ~3124 seconds per chunk
+  const chunkBytes = chunkSecs * BPS;
+  const total = Math.ceil((blob.size-HDR)/chunkBytes);
+  const headerBytes = new Uint8Array(await blob.slice(0,HDR).arrayBuffer());
+  let plainOut='', tsOut='';
+  for (let i=0; i<total; i++) {
+    const s=HDR+i*chunkBytes, e=Math.min(HDR+(i+1)*chunkBytes,blob.size);
+    const da=new Uint8Array(await blob.slice(s,e).arrayBuffer());
+    const cb=new ArrayBuffer(HDR+da.length);
+    const dv=new DataView(cb), ca=new Uint8Array(cb);
+    ca.set(headerBytes,0); dv.setUint32(4,36+da.length,true); dv.setUint32(40,da.length,true); ca.set(da,HDR);
+    $('detail1').textContent=`Deepgram: часть ${i+1}/${total}...`;
+    const r = await deepgramChunk(new Blob([cb],{type:'audio/wav'}), apiKey, offsetSec+i*chunkSecs);
+    plainOut+=(i>0?' ':'')+r.plain; tsOut+=(i>0?'\n':'')+r.timestamped;
+  }
+  return{plain:plainOut, timestamped:tsOut};
+}
+async function deepgramChunk(blob, apiKey, offsetSec=0) {
+  const params = new URLSearchParams({
+    model:'nova-3', language:'ru', punctuate:'true',
+    words:'true', smart_format:'true', diarize:'true'
+  });
+  const res = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
+    method:'POST',
+    headers:{'Authorization':`Token ${apiKey}`,'Content-Type':'audio/wav'},
+    body: blob
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(`Deepgram: ${err.err_msg || err.message || res.statusText}`);
+  }
+  const data = await res.json();
+  const alt = data.results?.channels?.[0]?.alternatives?.[0];
+  if (!alt) throw new Error('Deepgram: пустой ответ');
+  const words = alt.words || [];
+  if (!words.length) return{plain: alt.transcript||'', timestamped:`[${fmtTime(offsetSec)}] ${alt.transcript||''}`};
+
+  // Check if diarization is present
+  const hasDiarize = words.some(w => w.speaker !== undefined && w.speaker !== null);
+
+  if (hasDiarize) {
+    // Build speaker-labelled transcript: group consecutive words by same speaker
+    let lines=[], blk=[], bs=null, curSpk=null;
+    for (let i=0; i<words.length; i++) {
+      const w=words[i], abs=offsetSec+(w.start||0), spk=w.speaker??0;
+      const isLast = i===words.length-1;
+      const speakerChanged = curSpk !== null && spk !== curSpk;
+      const blockLong = bs!==null && (abs - bs) >= 30;
+      if (speakerChanged || blockLong || isLast) {
+        if (isLast && spk===curSpk) blk.push(w.punctuated_word||w.word||'');
+        if (blk.length) {
+          const spkLabel = `Спикер ${(curSpk??0)+1}`;
+          lines.push(`[${fmtTime(bs??abs)}] ${spkLabel}: ${blk.join(' ')}`);
+        }
+        blk=[w.punctuated_word||w.word||'']; bs=abs; curSpk=spk;
+        if (isLast && spk!==curSpk) {
+          lines.push(`[${fmtTime(abs)}] Спикер ${spk+1}: ${w.punctuated_word||w.word||''}`);
+        }
+      } else {
+        if (bs===null){bs=abs; curSpk=spk;}
+        blk.push(w.punctuated_word||w.word||'');
+      }
+    }
+    const plain = words.map(w=>w.punctuated_word||w.word||'').join(' ');
+    const timestamped = lines.join('\n');
+    return{plain, timestamped};
+  } else {
+    // No diarization — group by 30-second blocks
+    let lines=[], blk=[], bs=null;
+    for (const w of words) {
+      const abs = offsetSec+(w.start||0);
+      if (bs===null) bs=abs;
+      blk.push(w.punctuated_word||w.word||'');
+      if ((abs-bs+(w.end-w.start))>=30 || w===words[words.length-1]) {
+        lines.push(`[${fmtTime(bs)}] ${blk.join(' ')}`);
+        blk=[]; bs=null;
+      }
+    }
+    const plain = alt.transcript||'';
+    return{plain, timestamped:lines.join('\n')};
+  }
+}
+
+// ── MAKE PROTOCOL FROM EXISTING TRANSCRIPT ──────────────────────
+// Called from the transcript-only result box — no re-transcription!
+async function makeProtocolFromTranscript() {
+  const apiKey  = $('ptApiKey').value.trim();
+  const context = $('ptContext').value.trim();
+  if (!apiKey)  { showError('Введите API ключ'); return; }
+  if (!savedPlainTranscript) { showError('Нет транскрипта'); return; }
+  $('btnMakeProto').disabled = true;
+  $('protoProgress').textContent = `⏳ Анализируем через ${currentProtoModel === 'claude' ? 'Claude' : 'Gemini'}...`;
+  $('protoProgress').classList.add('visible');
+  hideError();
+  try {
+    const fileDate = new Date().toLocaleDateString('ru-RU');
+    const analysis = currentProtoModel === 'gemini'
+      ? await analyzeWithGemini(savedPlainTranscript, context, apiKey, fileDate)
+      : await analyzeWithClaude(savedPlainTranscript, context, apiKey, fileDate);
+    // Save key for future
+    localStorage.setItem(currentProtoModel === 'claude' ? 'anthropic_key' : 'gemini_key', apiKey);
+    // Hide transcript box, show full results
+    $('transcriptOnlyResult').classList.remove('visible');
+    renderResults(savedPlainTranscript, analysis);
+    initChat(savedPlainTranscript, analysis, apiKey);
+    saveToHistory(savedPlainTranscript, analysis, savedTranscriptFilename, 'analysis');
+    $('results').classList.add('visible');
+    setTimeout(()=>$('results').scrollIntoView({behavior:'smooth',block:'start'}), 100);
+  } catch(err) {
+    showError(err.message);
+    $('protoProgress').textContent = '⚠ ' + err.message;
+  }
+  $('btnMakeProto').disabled = false;
+  $('protoProgress').classList.remove('visible');
+}
+
 </script>
 </body>
 </html>
