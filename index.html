@@ -6,7 +6,7 @@
 <title>Анализ совещания</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0f14;--surface:#13161e;--surface2:#1a1e2a;--border:#252b3b;--accent:#e8c870;--accent2:#6eb5ff;--accent3:#7deba0;--danger:#ff6b6b;--text:#e8eaf0;--text-muted:#6b7694;--text-dim:#3d4460;}
+:root{--bg:#0d0f14;--surface:#13161e;--surface2:#1a1e2a;--border:#252b3b;--accent:#e8c870;--accent2:#6eb5ff;--accent3:#7deba0;--danger:#ff6b6b;--text:#e8eaf0;--text-muted:#6b7694;--text-dim:#5a6280;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;top:-50%;left:-20%;width:60%;height:80%;background:radial-gradient(ellipse,rgba(232,200,112,.04) 0%,transparent 70%);pointer-events:none;z-index:0;}
@@ -18,7 +18,8 @@ h1{font-family:'Playfair Display',serif;font-size:clamp(26px,5vw,40px);font-weig
 h1 span{color:var(--accent);}
 .header-sub{margin-top:10px;font-size:12px;color:var(--text-muted);font-weight:300;}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;animation:fadeUp .6s ease .1s both;}
-.panel-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;}
+.panel-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.panel-chevron{font-size:12px;transition:transform .25s;display:none;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
 .full{grid-column:1/-1;}
@@ -68,6 +69,9 @@ input::placeholder{color:var(--text-dim);}
 .upload-hint{font-size:11px;color:var(--text-muted);margin-top:4px;}
 .upload-filename{font-size:12px;color:var(--accent3);margin-top:10px;}
 #fileInput{display:none;}
+/* Mobile file pick button — hidden on desktop */
+.mobile-pick-btn{display:none;margin-top:16px;padding:13px 28px;background:var(--accent);color:#0d0f14;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.05em;}
+
 .btn-analyze{width:100%;padding:16px;background:var(--accent);color:#0d0f14;border:none;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-bottom:28px;animation:fadeUp .6s ease .3s both;}
 .btn-analyze:hover:not(:disabled){background:#f0d48a;transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,200,112,.2);}
 .btn-analyze.transcript-btn{background:var(--accent3);color:#0d0f14;}
@@ -176,7 +180,7 @@ input::placeholder{color:var(--text-dim);}
 /* MODEL SELECTOR */
   /* ── PROVIDER SELECTOR ─── */
   .provider-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
-  @media(max-width:500px){.provider-selector{grid-template-columns:1fr;}}
+  @media(max-width:540px){.provider-selector{grid-template-columns:1fr;}}
   .provider-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;}
   .provider-opt:hover{border-color:var(--text-muted);}
   .provider-opt.active{border-color:var(--accent2);background:rgba(110,181,255,.06);}
@@ -194,7 +198,7 @@ input::placeholder{color:var(--text-dim);}
   .btn-make-proto:hover:not(:disabled){background:#f0d48a;transform:translateY(-1px);}
   .btn-make-proto:disabled{opacity:.4;cursor:not-allowed;}
   .model-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
-@media(max-width:500px){.model-selector{grid-template-columns:1fr;}}
+@media(max-width:540px){.model-selector{grid-template-columns:1fr;}}
 .model-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;}
 .model-opt:hover{border-color:var(--text-muted);}
 .model-opt.active{border-color:var(--accent);background:rgba(232,200,112,.06);}
@@ -208,8 +212,13 @@ input::placeholder{color:var(--text-dim);}
 .save-keys-hint.visible{opacity:1;}
 /* HISTORY */
 .history-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;animation:fadeUp .6s ease .15s both;}
-.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.history-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);}
+.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;cursor:pointer;user-select:none;}
+.history-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
+.history-chevron{font-size:11px;transition:transform .25s;color:var(--text-dim);}
+.history-panel.collapsed .history-chevron{transform:rotate(-90deg);}
+.history-panel.collapsed .history-list{display:none;}
+.history-panel.collapsed{margin-bottom:12px;}
+.history-panel.collapsed .history-header{margin-bottom:0;}
 .history-clear{font-size:11px;color:var(--text-dim);cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;transition:color .2s;padding:0;}
 .history-clear:hover{color:var(--danger);}
 .history-empty{font-size:12px;color:var(--text-dim);text-align:center;padding:8px 0;}
@@ -230,6 +239,85 @@ input::placeholder{color:var(--text-dim);}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,200,112,.4)}50%{box-shadow:0 0 0 6px rgba(232,200,112,0)}}
+
+/* ══════════════════════════════════════════════════
+   MOBILE STYLES
+   ══════════════════════════════════════════════════ */
+
+/* Show mobile pick button, swap upload text on touch devices */
+@media(hover:none){
+  .mobile-pick-btn{display:inline-block;}
+  .upload-drag-text{display:none;}
+  .upload-zone .upload-hint.drag-hint{display:none;}
+}
+
+/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+@media(max-width:768px){
+  input[type=text],
+  input[type=password],
+  .chat-input,
+  .auth-input{font-size:16px !important;}
+  /* Also bump label sizes for readability */
+  .panel-title{font-size:11px;}
+  label{font-size:12px;}
+  /* Larger touch targets */
+  .btn-analyze,.btn-reset,.btn-make-proto,.auth-btn{padding:18px;font-size:14px;}
+  .copy-btn{padding:12px 20px;font-size:12px;}
+  .card-header{padding:18px 20px;min-height:52px;}
+  .history-item-del{padding:8px 12px;font-size:15px;}
+  .chat-suggestion{padding:10px 16px;font-size:12px;}
+  .save-keys-btn{padding:10px 18px;font-size:12px;}
+  /* Show settings panel chevron */
+  .panel-chevron{display:block;}
+  /* Settings panel title clickable style */
+  .panel-title{cursor:pointer;}
+}
+
+/* Compact spacing on mobile */
+@media(max-width:600px){
+  .app{padding:20px 14px;}
+  header{margin-bottom:28px;}
+  .upload-zone{padding:24px 16px;}
+  .auth-box{padding:28px 20px;}
+  .panel{padding:16px;}
+  .history-panel{padding:16px;}
+  .card-body{padding:14px;}
+  .overview-card{padding:16px;}
+  .chat-messages{padding:12px 14px;}
+  .chat-suggestions{padding:10px 14px 0;}
+  .transcript-only-result{padding:16px;}
+  .step{padding:12px 14px;}
+}
+
+/* Very small screens */
+@media(max-width:360px){
+  .auth-box{padding:20px 14px;}
+  .auth-title{font-size:22px;}
+  .app{padding:16px 12px;}
+}
+
+/* Stack mode tabs vertically + hide description on small screens */
+@media(max-width:480px){
+  .mode-tabs{grid-template-columns:1fr;}
+  .mode-tab{padding:12px 16px;display:flex;align-items:center;gap:12px;}
+  .mode-tab-icon{font-size:18px;margin-bottom:0;flex-shrink:0;}
+  .mode-tab-desc{display:none;}
+  .mode-tab-name{font-size:14px;margin-bottom:0;}
+}
+
+/* Stack chat input on mobile */
+@media(max-width:480px){
+  .chat-input-row{flex-direction:column;gap:8px;padding:12px 14px;}
+  .chat-send{width:100%;padding:14px;font-size:13px;}
+  .chat-input{min-height:52px;font-size:16px !important;}
+  .chat-bubble{max-width:95%;font-size:13px;}
+}
+
+/* Settings panel body — collapsed on mobile */
+.panel-body{transition:all .2s;}
+.panel.collapsed .panel-body{display:none;}
+.panel.collapsed{padding-bottom:16px;}
+.panel-chevron.rotated{transform:rotate(-90deg);}
 </style>
 </head>
 <body>
@@ -270,8 +358,12 @@ input::placeholder{color:var(--text-dim);}
 </div>
 
 <!-- ── API SETTINGS ───────────────────────────────────────────────── -->
-<div class="panel">
-  <div class="panel-title">⚙ Настройки API</div>
+<div class="panel" id="settingsPanel">
+  <div class="panel-title" onclick="toggleSettingsPanel()">
+    <span>⚙ Настройки API</span>
+    <span class="panel-chevron" id="settingsChevron">▼</span>
+  </div>
+  <div class="panel-body" id="settingsPanelBody">
   <div class="grid2">
     <div class="field full">
       <label>Провайдер транскрипции</label>
@@ -327,12 +419,16 @@ input::placeholder{color:var(--text-dim);}
       <input type="text" id="meetingContext" placeholder="Например: встреча по БТ операционных рисков в ELMA">
     </div>
   </div>
+  </div><!-- /panel-body -->
 </div>
 
 <!-- ── HISTORY ────────────────────────────────────────────────────── -->
 <div class="history-panel" id="historyPanel">
-  <div class="history-header">
-    <div class="history-title">📁 История</div>
+  <div class="history-header" onclick="toggleHistoryPanel(event)">
+    <div class="history-title">
+      📁 История
+      <span class="history-chevron" id="historyChevron">▼</span>
+    </div>
     <button class="history-clear" onclick="clearHistory()">Очистить всё</button>
   </div>
   <div class="history-list" id="historyList">
@@ -341,13 +437,15 @@ input::placeholder{color:var(--text-dim);}
 </div>
 
 <!-- ── UPLOAD ─────────────────────────────────────────────────────── -->
-<div class="upload-zone" id="uploadZone">
+<div class="upload-zone" id="uploadZone" onclick="handleUploadZoneClick(event)">
   <span class="upload-icon">🎙</span>
-  <div class="upload-title">Перетащите аудиофайл сюда</div>
-  <div class="upload-hint">или нажмите для выбора</div>
+  <div class="upload-title upload-drag-text">Перетащите аудиофайл сюда</div>
+  <div class="upload-hint drag-hint">или нажмите для выбора</div>
   <div class="upload-hint" style="margin-top:6px;"><strong style="color:var(--accent)">Можно выбрать несколько файлов</strong> · MP3 · MP4 · WAV · M4A</div>
+  <!-- Visible button for mobile — reliable iOS tap target -->
+  <label for="fileInput" class="mobile-pick-btn" onclick="event.stopPropagation()">📁 Выбрать файл с устройства</label>
   <div class="upload-filename" id="fileName"></div>
-  <input type="file" id="fileInput" accept="audio/*,video/mp4,video/webm" multiple>
+  <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg,.aac,.flac,.opus,.wma" multiple>
 </div>
 
 <button class="btn-analyze transcript-btn" id="analyzeBtn" disabled>▶ &nbsp; Получить транскрипт</button>
@@ -395,9 +493,9 @@ input::placeholder{color:var(--text-dim);}
     </div>
     <div style="margin-bottom:10px;">
       <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;" id="ptKeyLabel">Anthropic API Key</label>
-      <input type="password" id="ptApiKey" placeholder="sk-ant-..." autocomplete="off" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      <input type="password" id="ptApiKey" placeholder="sk-ant-..." autocomplete="off" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:16px;outline:none;width:100%;">
     </div>
-    <input type="text" id="ptContext" placeholder="Контекст совещания (необязательно)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;margin-bottom:12px;">
+    <input type="text" id="ptContext" placeholder="Контекст совещания (необязательно)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:16px;outline:none;width:100%;margin-bottom:12px;">
     <button class="btn-make-proto" id="btnMakeProto" onclick="makeProtocolFromTranscript()">🔍 &nbsp; Создать протокол</button>
     <div class="proto-progress" id="protoProgress">⏳ Анализируем...</div>
   </div>
@@ -538,7 +636,6 @@ function sanitizeKey(k){return(k||'').replace(/[^\x20-\x7E]/g,'').trim();}
 
 // ══════════════════════════════════════════════════════════════════
 // !! СМЕНИ ПАРОЛЬ ЗДЕСЬ перед деплоем !!
-// Пароль должен знать только твой отдел.
 // ══════════════════════════════════════════════════════════════════
 const ACCESS_PASSWORD = 'bereke2025';
 const AUTH_KEY = 'dpuior_auth_v1';
@@ -573,14 +670,53 @@ function logout() {
   location.reload();
 }
 
-// Init on load
 document.getElementById('authInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') checkAuth();
 });
 if (isAuthed()) showApp();
 
+// ── SETTINGS PANEL COLLAPSE (mobile) ─────────────────────────────
+function toggleSettingsPanel() {
+  if (window.innerWidth > 768) return; // desktop: always open
+  const panel = document.getElementById('settingsPanel');
+  const chevron = document.getElementById('settingsChevron');
+  const collapsed = panel.classList.toggle('collapsed');
+  chevron.classList.toggle('rotated', collapsed);
+}
+
+function initSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  const chevron = document.getElementById('settingsChevron');
+  // On mobile, start collapsed if no key is saved yet
+  if (window.innerWidth <= 768) {
+    const hasKey = localStorage.getItem('groq_key') || localStorage.getItem('deepgram_key');
+    if (!hasKey) {
+      panel.classList.add('collapsed');
+      chevron.classList.add('rotated');
+    }
+  }
+}
+
+// ── HISTORY PANEL COLLAPSE (mobile) ──────────────────────────────
+function toggleHistoryPanel(event) {
+  // Don't collapse when clicking "Очистить всё"
+  if (event.target.classList.contains('history-clear')) return;
+  const panel = document.getElementById('historyPanel');
+  const chevron = document.getElementById('historyChevron');
+  const collapsed = panel.classList.toggle('collapsed');
+  chevron.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+function initHistoryPanel() {
+  if (window.innerWidth <= 600) {
+    const panel = document.getElementById('historyPanel');
+    const chevron = document.getElementById('historyChevron');
+    panel.classList.add('collapsed');
+    chevron.style.transform = 'rotate(-90deg)';
+  }
+}
+
 // ── APP MODE ─────────────────────────────────────────────────────
-// 'transcript' = только расшифровка, 'analysis' = полный анализ
 let appMode = 'transcript';
 
 function selectAppMode(mode) {
@@ -590,15 +726,12 @@ function selectAppMode(mode) {
   tabT.classList.toggle('active', mode === 'transcript');
   tabA.classList.toggle('active', mode === 'analysis');
 
-  // Show/hide analysis-only fields
   document.querySelectorAll('.analysis-only').forEach(el => {
     el.classList.toggle('hidden', mode === 'transcript');
   });
-  // Show/hide step3
   const s3 = document.getElementById('step3');
   if (s3) s3.style.display = mode === 'analysis' ? 'flex' : 'none';
 
-  // Update button label & style
   const btn = document.getElementById('analyzeBtn');
   if (mode === 'transcript') {
     btn.textContent = '▶   Получить транскрипт';
@@ -606,6 +739,13 @@ function selectAppMode(mode) {
   } else {
     btn.textContent = '▶   Анализировать совещание';
     btn.classList.remove('transcript-btn');
+  }
+  // On mobile: auto-expand settings panel when switching to analysis mode
+  if (mode === 'analysis' && window.innerWidth <= 768) {
+    const panel = document.getElementById('settingsPanel');
+    const chevron = document.getElementById('settingsChevron');
+    panel.classList.remove('collapsed');
+    chevron.classList.remove('rotated');
   }
   updateBtn();
 }
@@ -721,6 +861,13 @@ function saveKeys() {
   const hint = $('saveKeysHint');
   hint.textContent = '✓ Ключи сохранены';
   hint.classList.add('visible');
+  // Collapse settings panel on mobile after saving
+  if (window.innerWidth <= 768) {
+    const panel = document.getElementById('settingsPanel');
+    const chevron = document.getElementById('settingsChevron');
+    panel.classList.add('collapsed');
+    chevron.classList.add('rotated');
+  }
   setTimeout(() => hint.classList.remove('visible'), 2500);
 }
 
@@ -749,25 +896,25 @@ function autoSave() {
   }, 1000);
 }
 
-// ── MODEL SELECTOR ────────────────────────────────────────────────
-// ── PROVIDER SELECTOR ──────────────────────────────────────
+// ── PROVIDER SELECTOR ────────────────────────────────────────────
 function selectProvider(p) {
   currentProvider = p;
   document.getElementById('provGroq').classList.toggle('active', p === 'groq');
   document.getElementById('provDeepgram').classList.toggle('active', p === 'deepgram');
   document.getElementById('groqKeyField').classList.toggle('visible', p === 'groq');
   document.getElementById('deepgramKeyField').classList.toggle('visible', p === 'deepgram');
-  // Update provider description in step
   const s1d = document.getElementById('detail1');
   if (s1d) s1d.textContent = p === 'deepgram' ? 'Nova-3 + диаризация спикеров' : 'Whisper Large v3';
   updateBtn();
 }
+
 function getTranscriptKey() {
   const raw = currentProvider === 'groq'
     ? (document.getElementById('groqKey')?.value || '')
     : (document.getElementById('deepgramKey')?.value || '');
   return sanitizeKey(raw);
 }
+
 function selectProtoModel(m) {
   currentProtoModel = m;
   document.getElementById('ptOptClaude').classList.toggle('active', m === 'claude');
@@ -778,6 +925,7 @@ function selectProtoModel(m) {
   else { lbl.textContent='Google AI API Key'; inp.placeholder='AIza...'; const s=localStorage.getItem('gemini_key'); if(s)inp.value=s; }
 }
 
+// ── MODEL SELECTOR ────────────────────────────────────────────────
 function selectModel(model) {
   currentModel = model;
   $('optClaude').classList.toggle('active', model==='claude');
@@ -802,7 +950,14 @@ function updateBtn() {
 // ── UPLOAD ────────────────────────────────────────────────────────
 const uploadZone = $('uploadZone');
 const fileInput  = $('fileInput');
-uploadZone.addEventListener('click', () => fileInput.click());
+
+// Separate handler so the mobile-pick-btn label click doesn't double-fire
+function handleUploadZoneClick(event) {
+  if (event.target.classList.contains('mobile-pick-btn') ||
+      event.target.tagName === 'LABEL') return;
+  fileInput.click();
+}
+
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
 uploadZone.addEventListener('drop', e => {
@@ -821,6 +976,13 @@ function setFiles(files) {
     $('fileName').textContent = `✓ ${files.length} файлов: ${files.map(f=>f.name).join(', ')} (${total.toFixed(1)} МБ)`;
   }
   uploadZone.classList.add('has-file');
+  // On mobile: expand settings if no key saved yet, so user knows to add it
+  if (window.innerWidth <= 768 && !getTranscriptKey()) {
+    const panel = document.getElementById('settingsPanel');
+    const chevron = document.getElementById('settingsChevron');
+    panel.classList.remove('collapsed');
+    chevron.classList.remove('rotated');
+  }
   updateBtn();
 }
 
@@ -867,7 +1029,7 @@ function downloadTranscriptOnly() {
 $('analyzeBtn').addEventListener('click', analyze);
 
 async function analyze() {
-  const trKey    = getTranscriptKey();  // Groq or Deepgram key depending on selected provider
+  const trKey    = getTranscriptKey();
   const apiKey   = getApiKey();
   const context  = $('meetingContext').value.trim();
   const modelLabel = currentModel === 'gemini' ? 'Gemini 2.5 Flash' : 'Claude Sonnet';
@@ -879,7 +1041,6 @@ async function analyze() {
   $('results').classList.remove('visible');
   $('transcriptOnlyResult').classList.remove('visible');
 
-  // Update step 1 label with actual provider name
   if ($('step1text')) $('step1text').textContent = `Транскрипция — ${providerLabel}`;
 
   if (appMode === 'transcript') {
@@ -919,17 +1080,14 @@ async function analyze() {
     }
     setStep(1,'done',`Транскрипт готов (${plainTranscript.length} символов)`);
 
-    // ── TRANSCRIPT-ONLY MODE ──────────────────────────────────────
     if (appMode === 'transcript') {
       setStep(2,'active','Сборка транскрипта...');
-      await new Promise(r => setTimeout(r, 300)); // small delay for UX
+      await new Promise(r => setTimeout(r, 300));
       setStep(2,'done','Готово');
       $('progressSection').classList.remove('visible');
       const fname = selectedFiles[0]?.name || 'совещание';
-      // Save plain (no timestamps) for protocol-from-transcript
       savedPlainTranscript = plainTranscript;
       savedTranscriptFilename = fname;
-      // Prefill protocol API key if already saved
       const _savedAnt = localStorage.getItem('anthropic_key');
       if (_savedAnt && $('ptApiKey')) $('ptApiKey').value = _savedAnt;
       showTranscriptOnly(tsTranscript, fname);
@@ -938,7 +1096,6 @@ async function analyze() {
       return;
     }
 
-    // ── FULL ANALYSIS MODE ────────────────────────────────────────
     setStep(2,'active',`Анализ через ${modelLabel}...`);
     let analysis;
     if (currentModel === 'gemini') {
@@ -1041,20 +1198,23 @@ async function transcribeChunk(blob,apiKey,filename,offsetSec=0){
   if(data.segments&&data.segments.length){
     const segs=data.segments.filter(s=>!ARTIFACTS.some(a=>s.text.toLowerCase().includes(a)));
     const plain=segs.map(s=>s.text.trim()).join(' ');
-    let tsLines=[],block=[],blockStart=null;
-    for(const seg of segs){
-      const abs=offsetSec+seg.start;
-      if(blockStart===null)blockStart=abs;
-      block.push(seg.text.trim());
-      if((abs-blockStart+seg.end-seg.start)>=30||seg===segs[segs.length-1]){
-        tsLines.push(`[${fmtTime(blockStart)}] ${block.join(' ')}`);
-        block=[];blockStart=null;
-      }
-    }
+    // Each segment on its own timestamped line — typically 5–15 sec each, much more readable than 30-sec blocks
+    const tsLines=segs.map(s=>`[${fmtTime(offsetSec+s.start)}] ${s.text.trim()}`);
     return{plain,timestamped:tsLines.join('\n')};
   }
-  const plain=ARTIFACTS.reduce((t,a)=>t.replace(new RegExp(a,'gi'),''),data.text||'').trim();
-  return{plain,timestamped:`[${fmtTime(offsetSec)}] ${plain}`};
+  // Fallback: no segments — split text into ~sentence chunks with estimated timestamps
+  const rawText=ARTIFACTS.reduce((t,a)=>t.replace(new RegExp(a,'gi'),''),data.text||'').trim();
+  if(!rawText)return{plain:'',timestamped:''};
+  // Split on sentence-ending punctuation to create readable lines
+  const sentences=rawText.match(/[^.!?]+[.!?]+\s*/g)||[rawText];
+  const estSecsPerChar=(data.duration||60)/rawText.length;
+  let charOffset=0;
+  const tsLines=sentences.map(s=>{
+    const line=`[${fmtTime(offsetSec+charOffset*estSecsPerChar)}] ${s.trim()}`;
+    charOffset+=s.length;
+    return line;
+  });
+  return{plain:rawText,timestamped:tsLines.join('\n')};
 }
 
 // ── SHARED PROMPT ─────────────────────────────────────────────────
@@ -1065,7 +1225,6 @@ function buildPrompt(transcript, context, fileDate) {
   const dateHint = fileDate ? `Дата файла: ${fileDate}. ` : '';
   const ctx = context ? `Контекст: ${context}\n\n` : '';
 
-  // Detect if transcript is diarized (contains "Спикер N:")
   const isDiarized = /Спикер\s+\d+:/i.test(transcript);
   const diarizeNote = isDiarized
     ? `\nТранскрипт содержит метки спикеров (Спикер 1:, Спикер 2: и т.д.). Используй их для определения участников.\nЕсли имена спикеров не упоминаются в тексте — записывай их как "Спикер 1", "Спикер 2" и т.д.\n`
@@ -1355,7 +1514,9 @@ ${chatTranscript.slice(0,60000)}`;
 document.addEventListener('DOMContentLoaded',()=>{
   loadKeys();
   renderHistory();
-  selectAppMode('transcript'); // default mode
+  selectAppMode('transcript');
+  initSettingsPanel();
+  initHistoryPanel();
   const inp=$('chatInput');
   if(inp){
     inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px';});
@@ -1363,17 +1524,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// ── DEEPGRAM TRANSCRIPTION ──────────────────────────────────────
-// Uses REST API: POST /v1/listen with raw audio bytes (not WebSocket)
+// ── DEEPGRAM TRANSCRIPTION ────────────────────────────────────────
 async function transcribeWithDeepgram(blob, apiKey, offsetSec=0){
-  const MAX = 100 * 1024 * 1024; // chunk at 100MB
+  const MAX = 100 * 1024 * 1024;
   if (blob.size <= MAX) {
     $('detail1').textContent = 'Отправка в Deepgram...';
     return await deepgramChunk(blob, apiKey, offsetSec);
   }
-  // chunk size = fill up to MAX: 100MB / 32000 bytes/sec ≈ 3125 sec (52 min)
   const BPS=32000, HDR=44;
-  const chunkSecs = Math.floor((MAX - HDR) / BPS); // ~3124 seconds per chunk
+  const chunkSecs = Math.floor((MAX - HDR) / BPS);
   const chunkBytes = chunkSecs * BPS;
   const total = Math.ceil((blob.size-HDR)/chunkBytes);
   const headerBytes = new Uint8Array(await blob.slice(0,HDR).arrayBuffer());
@@ -1390,10 +1549,11 @@ async function transcribeWithDeepgram(blob, apiKey, offsetSec=0){
   }
   return{plain:plainOut, timestamped:tsOut};
 }
+
 async function deepgramChunk(blob, apiKey, offsetSec=0) {
   const params = new URLSearchParams({
     model:'nova-3', language:'ru', punctuate:'true',
-    words:'true', smart_format:'true', diarize:'true'
+    words:'true', smart_format:'true', diarize:'true', utterances:'true'
   });
   const res = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
     method:'POST',
@@ -1405,59 +1565,73 @@ async function deepgramChunk(blob, apiKey, offsetSec=0) {
     throw new Error(`Deepgram: ${err.err_msg || err.message || res.statusText}`);
   }
   const data = await res.json();
+
+  // Utterances = pre-segmented speaker-labelled chunks — best source for diarization
+  const utterances = data.results?.utterances;
+  if (utterances && utterances.length) {
+    const plain = utterances.map(u => u.transcript).join(' ');
+    const lines = utterances.map(u => {
+      const spk = u.speaker !== undefined ? `Спикер ${u.speaker + 1}: ` : '';
+      return `[${fmtTime(offsetSec + (u.start || 0))}] ${spk}${u.transcript}`;
+    });
+    return { plain, timestamped: lines.join('\n') };
+  }
+
+  // Fallback: word-level from channel alternatives
   const alt = data.results?.channels?.[0]?.alternatives?.[0];
   if (!alt) throw new Error('Deepgram: пустой ответ');
   const words = alt.words || [];
-  if (!words.length) return{plain: alt.transcript||'', timestamped:`[${fmtTime(offsetSec)}] ${alt.transcript||''}`};
 
-  // Check if diarization is present
-  const hasDiarize = words.some(w => w.speaker !== undefined && w.speaker !== null);
-
-  if (hasDiarize) {
-    // Build speaker-labelled transcript: group consecutive words by same speaker
-    let lines=[], blk=[], bs=null, curSpk=null;
-    for (let i=0; i<words.length; i++) {
-      const w=words[i], abs=offsetSec+(w.start||0), spk=w.speaker??0;
-      const isLast = i===words.length-1;
-      const speakerChanged = curSpk !== null && spk !== curSpk;
-      const blockLong = bs!==null && (abs - bs) >= 30;
-      if (speakerChanged || blockLong || isLast) {
-        if (isLast && spk===curSpk) blk.push(w.punctuated_word||w.word||'');
-        if (blk.length) {
-          const spkLabel = `Спикер ${(curSpk??0)+1}`;
-          lines.push(`[${fmtTime(bs??abs)}] ${spkLabel}: ${blk.join(' ')}`);
-        }
-        blk=[w.punctuated_word||w.word||'']; bs=abs; curSpk=spk;
-        if (isLast && spk!==curSpk) {
-          lines.push(`[${fmtTime(abs)}] Спикер ${spk+1}: ${w.punctuated_word||w.word||''}`);
-        }
-      } else {
-        if (bs===null){bs=abs; curSpk=spk;}
-        blk.push(w.punctuated_word||w.word||'');
-      }
-    }
-    const plain = words.map(w=>w.punctuated_word||w.word||'').join(' ');
-    const timestamped = lines.join('\n');
-    return{plain, timestamped};
-  } else {
-    // No diarization — group by 30-second blocks
-    let lines=[], blk=[], bs=null;
-    for (const w of words) {
-      const abs = offsetSec+(w.start||0);
-      if (bs===null) bs=abs;
-      blk.push(w.punctuated_word||w.word||'');
-      if ((abs-bs+(w.end-w.start))>=30 || w===words[words.length-1]) {
-        lines.push(`[${fmtTime(bs)}] ${blk.join(' ')}`);
-        blk=[]; bs=null;
-      }
-    }
-    const plain = alt.transcript||'';
-    return{plain, timestamped:lines.join('\n')};
+  // No word-level data at all — split transcript by sentence with estimated timestamps
+  if (!words.length) {
+    const transcript = alt.transcript || '';
+    if (!transcript) return { plain: '', timestamped: '' };
+    const sentences = transcript.match(/[^.!?]+[.!?]+\s*/g) || [transcript];
+    const stepSec = 60 / sentences.length;
+    const lines = sentences.map((s, i) => `[${fmtTime(offsetSec + i * stepSec)}] ${s.trim()}`);
+    return { plain: transcript, timestamped: lines.join('\n') };
   }
+
+  // Word-level with diarization
+  const hasDiarize = words.some(w => w.speaker !== undefined && w.speaker !== null);
+  if (hasDiarize) {
+    const lines = [];
+    let curSpk = null, curStart = null, curWords = [];
+    for (const w of words) {
+      const spk = w.speaker ?? 0;
+      if (spk !== curSpk && curWords.length) {
+        lines.push(`[${fmtTime(offsetSec + curStart)}] Спикер ${curSpk + 1}: ${curWords.join(' ')}`);
+        curWords = []; curStart = null;
+      }
+      if (curStart === null) curStart = w.start || 0;
+      curSpk = spk;
+      curWords.push(w.punctuated_word || w.word || '');
+    }
+    if (curWords.length) {
+      lines.push(`[${fmtTime(offsetSec + curStart)}] Спикер ${curSpk + 1}: ${curWords.join(' ')}`);
+    }
+    const plain = words.map(w => w.punctuated_word || w.word || '').join(' ');
+    return { plain, timestamped: lines.join('\n') };
+  }
+
+  // Word-level without diarization: split at sentence-ending punctuation
+  const lines = [];
+  let blk = [], bs = null;
+  for (const w of words) {
+    const abs = offsetSec + (w.start || 0);
+    if (bs === null) bs = abs;
+    const pw = w.punctuated_word || w.word || '';
+    blk.push(pw);
+    if (/[.!?]$/.test(pw) || w === words[words.length - 1]) {
+      lines.push(`[${fmtTime(bs)}] ${blk.join(' ')}`);
+      blk = []; bs = null;
+    }
+  }
+  const plain = alt.transcript || '';
+  return { plain, timestamped: lines.join('\n') };
 }
 
-// ── MAKE PROTOCOL FROM EXISTING TRANSCRIPT ──────────────────────
-// Called from the transcript-only result box — no re-transcription!
+// ── MAKE PROTOCOL FROM EXISTING TRANSCRIPT ────────────────────────
 async function makeProtocolFromTranscript() {
   const apiKey  = sanitizeKey($('ptApiKey').value);
   const context = $('ptContext').value.trim();
@@ -1472,9 +1646,7 @@ async function makeProtocolFromTranscript() {
     const analysis = currentProtoModel === 'gemini'
       ? await analyzeWithGemini(savedPlainTranscript, context, apiKey, fileDate)
       : await analyzeWithClaude(savedPlainTranscript, context, apiKey, fileDate);
-    // Save key for future
     localStorage.setItem(currentProtoModel === 'claude' ? 'anthropic_key' : 'gemini_key', apiKey);
-    // Hide transcript box, show full results
     $('transcriptOnlyResult').classList.remove('visible');
     renderResults(savedPlainTranscript, analysis);
     initChat(savedPlainTranscript, analysis, apiKey);
@@ -1488,7 +1660,6 @@ async function makeProtocolFromTranscript() {
   $('btnMakeProto').disabled = false;
   $('protoProgress').classList.remove('visible');
 }
-
 </script>
 </body>
 </html>
