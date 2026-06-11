@@ -318,6 +318,46 @@ input::placeholder{color:var(--text-dim);}
 .panel.collapsed .panel-body{display:none;}
 .panel.collapsed{padding-bottom:16px;}
 .panel-chevron.rotated{transform:rotate(-90deg);}
+
+/* ── PROGRESS BAR (F) ── */
+.progress-bar-wrap{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.progress-bar{flex:1;height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent3),var(--accent2));border-radius:6px;transition:width .12s linear;}
+.progress-pct{font-size:13px;font-weight:500;color:var(--accent3);font-variant-numeric:tabular-nums;min-width:64px;text-align:right;}
+
+/* ── ROSTER / TEXTAREA ── */
+textarea.roster-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;width:100%;resize:vertical;min-height:64px;line-height:1.6;}
+textarea.roster-input:focus{border-color:var(--accent);}
+textarea.roster-input::placeholder{color:var(--text-dim);}
+
+/* ── LANGUAGE SELECTOR ── */
+.lang-selector{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;}
+.lang-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .2s;text-align:center;font-size:12px;color:var(--text);}
+.lang-opt:hover{border-color:var(--text-muted);}
+.lang-opt.active{border-color:var(--accent3);background:rgba(125,235,160,.06);color:var(--accent3);}
+
+/* ── SPEAKER MAP / EDITABLE PARTICIPANTS ── */
+.speaker-map{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.speaker-map-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;}
+.speaker-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.speaker-row .spk-from{font-size:12px;color:var(--accent2);min-width:80px;}
+.speaker-row input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;}
+.speaker-row input:focus{border-color:var(--accent);}
+.editable{border-bottom:1px dashed var(--text-dim);cursor:text;outline:none;}
+.editable:focus{border-bottom-color:var(--accent);background:rgba(232,200,112,.05);}
+
+/* ── TRANSCRIPT SEARCH + AUDIO ── */
+.transcript-tools{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.transcript-search{flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;}
+.transcript-search:focus{border-color:var(--accent);}
+.search-count{font-size:11px;color:var(--text-dim);white-space:nowrap;}
+.search-nav-btn{padding:6px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;}
+.search-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+mark{background:var(--accent);color:#0d0f14;border-radius:2px;padding:0 1px;}
+mark.active-match{background:var(--accent3);}
+.ts-link{color:var(--accent2);cursor:pointer;text-decoration:underline dotted;}
+.audio-player{width:100%;margin-bottom:12px;}
+.cost-line{font-size:11px;color:var(--text-dim);margin-top:6px;}
 </style>
 </head>
 <body>
@@ -378,6 +418,14 @@ input::placeholder{color:var(--text-dim);}
         </div>
       </div>
     </div>
+    <div class="field full">
+      <label>Язык аудио</label>
+      <div class="lang-selector">
+        <div class="lang-opt active" id="langAuto" onclick="selectLanguage('auto')">Авто</div>
+        <div class="lang-opt" id="langRu" onclick="selectLanguage('ru')">Русский</div>
+        <div class="lang-opt" id="langKk" onclick="selectLanguage('kk')">Қазақша</div>
+      </div>
+    </div>
     <div class="field provider-key-field visible" id="groqKeyField">
       <label>GROQ API KEY</label>
       <input type="password" id="groqKey" placeholder="gsk_..." autocomplete="off">
@@ -388,9 +436,13 @@ input::placeholder{color:var(--text-dim);}
     </div>
     <div class="field" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
       <button class="save-keys-btn" onclick="saveKeys()">💾 Сохранить ключи</button>
+      <button class="save-keys-btn" onclick="forgetKeys()" style="border-color:rgba(255,107,107,.3);color:var(--danger)">🗑 Забыть ключи</button>
       <span class="save-keys-hint" id="saveKeysHint"></span>
     </div>
-    <div></div>
+    <div class="field full">
+      <label>Участники — для точного распознавания имён (по одному на строку: ФИО, должность)</label>
+      <textarea class="roster-input" id="nameRoster" placeholder="Жанболат Сейтказы — рук. ДБ&#10;Айгерим Нурланова — комплаенс&#10;Бауыржан Алмасов"></textarea>
+    </div>
 
     <!-- ANALYSIS-ONLY FIELDS -->
     <div class="field analysis-only" id="fieldAnthropic">
@@ -453,9 +505,13 @@ input::placeholder{color:var(--text-dim);}
 
 <!-- ── PROGRESS ───────────────────────────────────────────────────── -->
 <div class="progress-section" id="progressSection">
+  <div class="progress-bar-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-pct" id="progressPct">0.00%</div>
+  </div>
   <div class="step" id="step1">
     <div class="step-icon" id="icon1">1</div>
-    <div><div class="step-text">Сжатие и транскрипция через Groq Whisper</div><div class="step-detail" id="detail1">Ожидание...</div></div>
+    <div><div class="step-text" id="step1text">Сжатие и транскрипция через Groq Whisper</div><div class="step-detail" id="detail1">Ожидание...</div></div>
   </div>
   <div class="step" id="step2">
     <div class="step-icon" id="icon2">2</div>
@@ -515,6 +571,7 @@ input::placeholder{color:var(--text-dim);}
       <div class="ov-field"><div class="ov-label">Задач</div><div class="ov-value" id="ovTasks">—</div></div>
       <div class="ov-field"><div class="ov-label">Решений</div><div class="ov-value" id="ovDecisions">—</div></div>
     </div>
+    <div class="cost-line" id="costLine"></div>
   </div>
 
   <div class="result-card">
@@ -528,9 +585,15 @@ input::placeholder{color:var(--text-dim);}
         <div class="proto-field"><div class="proto-label">Тема</div><div class="proto-value" id="protoTopic">—</div></div>
         <div class="proto-field full"><div class="proto-label">Участники</div><div class="proto-value" id="protoParticipants">—</div></div>
       </div>
+      <div id="speakerMapBox" style="display:none"></div>
+      <div class="speaker-map" id="participantsEditor" style="margin-bottom:16px"></div>
       <div class="section-label">Вопросы повестки и решения</div>
       <div id="protoAgenda"></div>
-      <button class="copy-btn" onclick="copyProtocol()">Копировать протокол</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+        <button class="copy-btn" style="margin-top:0" onclick="copyProtocol()">Копировать протокол</button>
+        <button class="copy-btn" style="margin-top:0" onclick="downloadDocx()">⬇ Word (.doc)</button>
+        <button class="copy-btn" style="margin-top:0" onclick="printProtocol()">🖨 PDF (печать)</button>
+      </div>
     </div>
   </div>
 
@@ -583,6 +646,10 @@ input::placeholder{color:var(--text-dim);}
     </div>
     <div class="card-body open" id="bodyTasks">
       <div id="tasksList"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+        <button class="copy-btn" style="margin-top:0" onclick="tasksToEmail()">✉ Задачи → письмо</button>
+        <button class="copy-btn" style="margin-top:0" onclick="tasksToICS()">📅 Задачи → .ics</button>
+      </div>
     </div>
   </div>
 
@@ -592,6 +659,13 @@ input::placeholder{color:var(--text-dim);}
       <span class="card-toggle" id="toggleTranscript">▼</span>
     </div>
     <div class="card-body" id="bodyTranscript">
+      <audio id="audioPlayer" class="audio-player" controls style="display:none;"></audio>
+      <div class="transcript-tools">
+        <input class="transcript-search" id="transcriptSearch" placeholder="🔍 Поиск по транскрипту..." oninput="searchTranscript()">
+        <span class="search-count" id="searchCount"></span>
+        <button class="search-nav-btn" onclick="searchNav(-1)">↑</button>
+        <button class="search-nav-btn" onclick="searchNav(1)">↓</button>
+      </div>
       <div class="transcript-text" id="transcriptText"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
         <button class="copy-btn" style="margin-top:0;" onclick="copyEl('transcriptText')">Копировать</button>
@@ -635,7 +709,89 @@ input::placeholder{color:var(--text-dim);}
 function sanitizeKey(k){return(k||'').replace(/[^\x20-\x7E]/g,'').trim();}
 
 // ══════════════════════════════════════════════════════════════════
-// !! СМЕНИ ПАРОЛЬ ЗДЕСЬ перед деплоем !!
+// SHARED HELPERS (аудит-харднинг)
+// ══════════════════════════════════════════════════════════════════
+// HTML-экранирование недоверенного текста перед вставкой в innerHTML (XSS, D1)
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Запись в localStorage, устойчивая к QuotaExceededError: вытесняет старые записи истории (C3)
+function safeSetItem(key,val){
+  try{ localStorage.setItem(key,val); return true; }
+  catch(e){
+    try{
+      let hist=JSON.parse(localStorage.getItem('meeting_history')||'[]');
+      while(hist.length){
+        hist.pop(); // история хранится newest-first (unshift) — выбрасываем самые старые
+        try{ localStorage.setItem('meeting_history',JSON.stringify(hist)); }catch(_){}
+        try{ localStorage.setItem(key,val); return true; }catch(_){}
+      }
+    }catch(_){}
+    return false;
+  }
+}
+
+// fetch с экспоненциальным backoff+jitter на 429/5xx и сетевые ошибки, + таймаут (C4)
+async function fetchRetry(url,opts,{retries=4,timeoutMs=180000,label=''}={}){
+  for(let attempt=0;attempt<=retries;attempt++){
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),timeoutMs);
+    try{
+      const res=await fetch(url,{...opts,signal:ctrl.signal});
+      clearTimeout(t);
+      if((res.status===429||res.status>=500)&&attempt<retries){
+        const ra=parseFloat(res.headers.get('retry-after'))*1000;
+        const wait=isFinite(ra)&&ra>0?ra:Math.min(30000,(2**attempt)*1000)+Math.random()*500;
+        await new Promise(r=>setTimeout(r,wait));
+        continue;
+      }
+      return res;
+    }catch(e){
+      clearTimeout(t);
+      if(attempt<retries){
+        await new Promise(r=>setTimeout(r,Math.min(30000,(2**attempt)*1000)+Math.random()*500));
+        continue;
+      }
+      throw new Error(`Проблема с сетью${label?' ('+label+')':''}: ${e.message}`);
+    }
+  }
+}
+
+// Справочник участников (A1) — единый источник правды для ASR и LLM (точность имён)
+function getRoster(){
+  const raw=($('nameRoster')?.value||'').trim();
+  if(!raw) return {names:[],list:'',prompt:''};
+  const names=raw.split(/[\n;]+/).map(s=>s.split(/[,—–-]/)[0].trim()).filter(Boolean);
+  const list=names.join(', ');
+  return {names,list,prompt:list?`Участники совещания: ${list}. Имена казахские и русские — соблюдай точное написание.`:''};
+}
+
+// ── ПРОГРЕСС-БАР ТРАНСКРИПЦИИ (F) ─────────────────────────────────
+let _progTimer=null, _progShown=0;
+function setProgress(pct){
+  pct=Math.max(0,Math.min(100,pct));
+  if(pct<_progShown) return; // монотонно — никогда назад
+  _progShown=pct;
+  const f=document.getElementById('progressFill'), l=document.getElementById('progressPct');
+  if(f) f.style.width=pct.toFixed(2)+'%';
+  if(l) l.textContent=pct.toFixed(2)+'%';
+}
+// Плавный «крип» к потолку, пока атомарный API-вызов в полёте (для нетерпеливых)
+function progCreep(fromPct,toPct,estMs){
+  progStop();
+  _progShown=Math.max(_progShown,fromPct);
+  const start=performance.now();
+  _progTimer=setInterval(()=>{
+    const k=Math.min(1,(performance.now()-start)/Math.max(1,estMs));
+    setProgress(fromPct+(toPct-fromPct)*(1-Math.pow(1-k,2))*0.97); // ease-out, не дойти до потолка
+  },100);
+}
+function progStop(){ if(_progTimer){clearInterval(_progTimer);_progTimer=null;} }
+function progReset(){ progStop(); _progShown=0; setProgress(0); }
+
+// ══════════════════════════════════════════════════════════════════
+// ВНИМАНИЕ: это НЕ безопасность, а мягкий UX-гейт. Пароль виден в коде,
+// любой может обойти его через DevTools. Реальная защита требует backend.
+// Смени значение ниже перед раздачей.
 // ══════════════════════════════════════════════════════════════════
 const ACCESS_PASSWORD = 'bereke2025';
 const AUTH_KEY = 'dpuior_auth_v1';
@@ -667,6 +823,7 @@ function showApp() {
 
 function logout() {
   localStorage.removeItem(AUTH_KEY);
+  ['groq_key','deepgram_key','anthropic_key','gemini_key'].forEach(k=>localStorage.removeItem(k)); // D2: чистим ключи при выходе
   location.reload();
 }
 
@@ -754,7 +911,7 @@ function selectAppMode(mode) {
 const HISTORY_KEY = 'meeting_history';
 const MAX_HISTORY = 20;
 
-function saveToHistory(transcript, analysis, filename) {
+function saveToHistory(transcript, analysis, filename, mode) {
   const history = loadHistory();
   const entry = {
     id: Date.now(),
@@ -764,11 +921,14 @@ function saveToHistory(transcript, analysis, filename) {
     savedAt: new Date().toLocaleString('ru-RU'),
     transcript,
     analysis,
-    mode: appMode
+    mode: mode || appMode,   // B1: явный режим, не глобальный appMode
+    model: chatModel         // B2: модель, создавшая анализ — для корректного чата
   };
   history.unshift(entry);
   if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  if(!safeSetItem(HISTORY_KEY, JSON.stringify(history))){
+    console.warn('История не сохранена: переполнен localStorage');
+  }
   renderHistory();
 }
 
@@ -802,8 +962,8 @@ function renderHistory() {
     item.innerHTML = `
       <div class="history-item-icon">${modeIcon}</div>
       <div class="history-item-info" onclick="loadFromHistory(${entry.id})">
-        <div class="history-item-topic">${entry.topic}</div>
-        <div class="history-item-meta">${entry.date} · ${entry.filename} · сохранено ${entry.savedAt}</div>
+        <div class="history-item-topic">${esc(entry.topic)}</div>
+        <div class="history-item-meta">${esc(entry.date)} · ${esc(entry.filename)} · сохранено ${esc(entry.savedAt)}</div>
       </div>
       <button class="history-item-del" onclick="deleteFromHistory(${entry.id}, event)" title="Удалить">✕</button>`;
     list.appendChild(item);
@@ -818,8 +978,9 @@ function loadFromHistory(id) {
   if (entry.mode === 'transcript') {
     showTranscriptOnly(entry.transcript, entry.filename);
   } else {
+    const m = entry.model || 'claude';
     renderResults(entry.transcript, entry.analysis);
-    initChat(entry.transcript, entry.analysis, getApiKey());
+    initChat(entry.transcript, entry.analysis, getKeyForModel(m), m); // B2
     document.getElementById('results').classList.add('visible');
   }
   setTimeout(() => document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'}), 100);
@@ -847,6 +1008,11 @@ let currentProtoModel = 'claude';
 let savedPlainTranscript = '', savedTranscriptFilename = '';
 let chatHistory = [], chatTranscript = '', chatAnalysis = null, chatApiKey = '';
 let lastTranscriptFilename = '';
+let currentLanguage = 'auto';   // 'auto' | 'ru' | 'kk' — язык транскрипции (A4)
+let chatModel = 'claude';       // модель, реально создавшая анализ (B2)
+let audioObjURL = '';           // object URL исходного аудио для плеера (E5)
+let lastAnalysis = null;        // текущий объект анализа (редактируемые поля, стоимость)
+let lastUsage = null;           // usage из последнего вызова анализа (E8)
 
 // ── API KEY PERSISTENCE ───────────────────────────────────────────
 function saveKeys() {
@@ -854,10 +1020,11 @@ function saveKeys() {
   const deepgram  = $('deepgramKey')?.value.trim() || '';
   const anthropic = $('anthropicKey').value.trim();
   const gemini    = $('geminiKey')?.value.trim() || '';
-  if (groq)      localStorage.setItem('groq_key', groq);
-  if (deepgram)  localStorage.setItem('deepgram_key', deepgram);
-  if (anthropic) localStorage.setItem('anthropic_key', anthropic);
-  if (gemini)    localStorage.setItem('gemini_key', gemini);
+  if (groq)      safeSetItem('groq_key', groq);
+  if (deepgram)  safeSetItem('deepgram_key', deepgram);
+  if (anthropic) safeSetItem('anthropic_key', anthropic);
+  if (gemini)    safeSetItem('gemini_key', gemini);
+  saveRoster();
   const hint = $('saveKeysHint');
   hint.textContent = '✓ Ключи сохранены';
   hint.classList.add('visible');
@@ -871,6 +1038,19 @@ function saveKeys() {
   setTimeout(() => hint.classList.remove('visible'), 2500);
 }
 
+function saveRoster(){ safeSetItem('name_roster', $('nameRoster')?.value || ''); }
+let rosterTimer=null;
+function autoSaveRoster(){ clearTimeout(rosterTimer); rosterTimer=setTimeout(saveRoster,1000); }
+
+// Удалить все ключи провайдеров из localStorage и полей ввода (D2)
+function forgetKeys(){
+  ['groq_key','deepgram_key','anthropic_key','gemini_key'].forEach(k=>localStorage.removeItem(k));
+  ['groqKey','deepgramKey','anthropicKey','geminiKey'].forEach(id=>{ if($(id)) $(id).value=''; });
+  const hint=$('saveKeysHint');
+  if(hint){ hint.textContent='🗑 Ключи удалены'; hint.classList.add('visible'); setTimeout(()=>hint.classList.remove('visible'),2500); }
+  updateBtn();
+}
+
 function loadKeys() {
   const groq      = localStorage.getItem('groq_key');
   const deepgram  = localStorage.getItem('deepgram_key');
@@ -880,21 +1060,15 @@ function loadKeys() {
   if (deepgram && $('deepgramKey'))   $('deepgramKey').value = deepgram;
   if (anthropic && $('anthropicKey')) $('anthropicKey').value = anthropic;
   if (gemini && $('geminiKey'))       $('geminiKey').value = gemini;
+  const roster = localStorage.getItem('name_roster');
+  if (roster && $('nameRoster'))      $('nameRoster').value = roster;
+  const lang = localStorage.getItem('audio_lang');
+  if (lang) selectLanguage(lang);
   if (groq || anthropic || gemini) updateBtn();
 }
 
-let saveTimer = null;
-function autoSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    const groq      = $('groqKey')?.value.trim();
-    const anthropic = $('anthropicKey')?.value.trim();
-    const gemini    = $('geminiKey')?.value.trim();
-    if (groq)      localStorage.setItem('groq_key', groq);
-    if (anthropic) localStorage.setItem('anthropic_key', anthropic);
-    if (gemini)    localStorage.setItem('gemini_key', gemini);
-  }, 1000);
-}
+// Тихий автосейв СЕКРЕТНЫХ ключей убран (D2): ключи сохраняются только по кнопке «Сохранить».
+function autoSave(){ /* no-op — оставлено для совместимости со слушателями ввода */ }
 
 // ── PROVIDER SELECTOR ────────────────────────────────────────────
 function selectProvider(p) {
@@ -933,10 +1107,27 @@ function selectModel(model) {
   updateBtn();
 }
 
+// ── LANGUAGE SELECTOR (A4) ────────────────────────────────────────
+function selectLanguage(lang){
+  currentLanguage = lang;
+  $('langAuto').classList.toggle('active', lang==='auto');
+  $('langRu').classList.toggle('active', lang==='ru');
+  $('langKk').classList.toggle('active', lang==='kk');
+  localStorage.setItem('audio_lang', lang);
+}
+
 function getApiKey() {
   const raw = currentModel === 'gemini'
     ? ($('geminiKey')?.value || '')
     : ($('anthropicKey')?.value || '');
+  return sanitizeKey(raw);
+}
+
+// Ключ для конкретной модели (B2) — для чата по сохранённому/proto-анализу
+function getKeyForModel(m){
+  const raw = m === 'gemini'
+    ? (localStorage.getItem('gemini_key') || $('geminiKey')?.value || '')
+    : (localStorage.getItem('anthropic_key') || $('anthropicKey')?.value || '');
   return sanitizeKey(raw);
 }
 
@@ -986,8 +1177,11 @@ function setFiles(files) {
   updateBtn();
 }
 
-$('groqKey').addEventListener('input', () => { updateBtn(); autoSave(); });
-document.addEventListener('input', e => { if (e.target.id==='anthropicKey'||e.target.id==='geminiKey') { updateBtn(); autoSave(); } });
+$('groqKey').addEventListener('input', () => { updateBtn(); });
+document.addEventListener('input', e => {
+  if (e.target.id==='anthropicKey'||e.target.id==='geminiKey'||e.target.id==='deepgramKey') updateBtn();
+  if (e.target.id==='nameRoster') autoSaveRoster();
+});
 
 // ── UI ────────────────────────────────────────────────────────────
 function setStep(n, state, detail) {
@@ -1022,7 +1216,7 @@ function downloadTranscriptOnly() {
   const name = lastTranscriptFilename.replace(/\.[^.]+$/,'') || 'транскрипт';
   const date = new Date().toLocaleDateString('ru-RU').replace(/\./g,'-');
   const header = `ТРАНСКРИПТ СОВЕЩАНИЯ\nДата обработки: ${date}\nФайл: ${lastTranscriptFilename}\n${'='.repeat(50)}\n\n`;
-  downloadFile(header + text, `транскрипт_${date}_${name}.txt`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.txt');
+  downloadFile(header + text, `транскрипт_${date}_${name}`.replace(/[\\/:*?"<>|]/g,'_').slice(0,76)+'.txt');
 }
 
 // ── ANALYZE ───────────────────────────────────────────────────────
@@ -1040,6 +1234,10 @@ async function analyze() {
   $('progressSection').classList.add('visible');
   $('results').classList.remove('visible');
   $('transcriptOnlyResult').classList.remove('visible');
+  progReset();
+  // запомнить исходное аудио для плеера и кликабельных таймкодов (E5) — только один файл
+  if (audioObjURL) { URL.revokeObjectURL(audioObjURL); audioObjURL=''; }
+  if (selectedFiles.length===1) { try{ audioObjURL=URL.createObjectURL(selectedFiles[0]); }catch(e){} }
 
   if ($('step1text')) $('step1text').textContent = `Транскрипция — ${providerLabel}`;
 
@@ -1061,18 +1259,26 @@ async function analyze() {
     }
 
     let totalOffsetSec=0;
-    for (let fi=0; fi<selectedFiles.length; fi++) {
+    const N=selectedFiles.length;
+    const TB=appMode==='analysis'?70:100;   // F: бюджет % на транскрипцию
+    const roster=getRoster();                 // A1: единый справочник имён
+    setProgress(2);
+    for (let fi=0; fi<N; fi++) {
       const file=selectedFiles[fi];
-      const lbl=selectedFiles.length>1?` (файл ${fi+1}/${selectedFiles.length})`:'';
+      const lbl=N>1?` (файл ${fi+1}/${N})`:'';
       setStep(1,'active',`Сжатие${lbl}...`);
-      const compressed=await compressAudio(file);
-      const estDur=Math.max((compressed.size-44)/32000, 0);
+      const {blob:compressed,isWav,durationSec}=await compressAudio(file);
+      const estDur=durationSec||Math.max((compressed.size-44)/32000,0); // C2: реальная длительность
+      const fileStart=TB*fi/N, fileEnd=TB*(fi+1)/N;
+      setProgress(fileStart);
       setStep(1,'active',`Транскрипция${lbl}...`);
       const provLbl = currentProvider === 'deepgram' ? 'Deepgram' : 'Groq';
-      $('detail1').textContent = `${provLbl}: файл ${fi+1}/${selectedFiles.length}...`;
+      $('detail1').textContent = `${provLbl}: файл ${fi+1}/${N}...`;
+      progCreep(fileStart,fileEnd,Math.max(3000,estDur*200)); // F: плавный крип к потолку
       const result = currentProvider === 'deepgram'
-        ? await transcribeWithDeepgram(compressed, trKey, totalOffsetSec)
-        : await transcribeWithGroq(compressed, trKey, totalOffsetSec);
+        ? await transcribeWithDeepgram(compressed, trKey, totalOffsetSec, roster.names, isWav)
+        : await transcribeWithGroq(compressed, trKey, totalOffsetSec, roster.prompt, isWav);
+      progStop(); setProgress(fileEnd);
       plainTranscript+=(fi>0?' ':'')+result.plain;
       tsTranscript+=(fi>0?'\n':'')+result.timestamped;
       totalOffsetSec+=estDur;
@@ -1083,6 +1289,7 @@ async function analyze() {
     if (appMode === 'transcript') {
       setStep(2,'active','Сборка транскрипта...');
       await new Promise(r => setTimeout(r, 300));
+      setProgress(100);
       setStep(2,'done','Готово');
       $('progressSection').classList.remove('visible');
       const fname = selectedFiles[0]?.name || 'совещание';
@@ -1097,23 +1304,27 @@ async function analyze() {
     }
 
     setStep(2,'active',`Анализ через ${modelLabel}...`);
+    progCreep(TB,99,Math.max(4000,plainTranscript.length*0.3)); // F
     let analysis;
     if (currentModel === 'gemini') {
       analysis = await analyzeWithGemini(plainTranscript, context, apiKey, fileDate);
     } else {
       analysis = await analyzeWithClaude(plainTranscript, context, apiKey, fileDate);
     }
+    progStop(); setProgress(100);
     setStep(2,'done','Анализ завершён');
 
     setStep(3,'active','Формируем результаты...');
+    chatModel = currentModel;                                  // B2
     renderResults(tsTranscript, analysis);
-    initChat(tsTranscript, analysis, apiKey);
-    saveToHistory(tsTranscript, analysis, selectedFiles[0]?.name || 'совещание');
+    initChat(tsTranscript, analysis, apiKey, currentModel);    // B2
+    saveToHistory(tsTranscript, analysis, selectedFiles[0]?.name || 'совещание', 'analysis'); // B1
     setStep(3,'done','Готово!');
     $('results').classList.add('visible');
     setTimeout(()=>$('results').scrollIntoView({behavior:'smooth',block:'start'}),100);
 
   } catch(err) {
+    progStop();
     showError(err.message);
     for(let i=1;i<=3;i++) if($('step'+i)?.classList.contains('active')) setStep(i,'error',err.message.slice(0,80));
     $('analyzeBtn').disabled=false;
@@ -1121,21 +1332,51 @@ async function analyze() {
 }
 
 // ── AUDIO COMPRESSION ─────────────────────────────────────────────
+// Возвращает {blob, isWav, durationSec}. C1: гард от OOM на длинном аудио/мобильных.
 async function compressAudio(file) {
+  // Очень большие файлы не декодируем в браузере — декод грузит весь PCM в память → краш вкладки.
+  if (file.size > 60*1024*1024) {
+    $('detail1').textContent='Большой файл — отправка без пере-сжатия...';
+    return {blob:file, isWav:false, durationSec:0};
+  }
   $('detail1').textContent='Декодирование аудио...';
-  const arrayBuffer=await file.arrayBuffer();
+  let arrayBuffer=await file.arrayBuffer();
   const audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
   let audioBuffer;
   try { audioBuffer=await audioCtx.decodeAudioData(arrayBuffer); }
-  catch(e) { audioCtx.close(); return file; }
-  $('detail1').textContent=`Конвертация (${Math.round(audioBuffer.duration/60)} мин)...`;
-  const numCh=audioBuffer.numberOfChannels, len=audioBuffer.length;
-  const mono=new Float32Array(len);
-  for(let ch=0;ch<numCh;ch++){const d=audioBuffer.getChannelData(ch);for(let i=0;i<len;i++)mono[i]+=d[i]/numCh;}
+  catch(e) { audioCtx.close(); arrayBuffer=null; return {blob:file, isWav:false, durationSec:0}; } // C2: не байт-резать контейнер
+  arrayBuffer=null;
+  const durationSec=audioBuffer.duration;
+  // Длинное аудио (>45 мин): не пере-кодируем (Float32 на всю длину = OOM), шлём оригинал.
+  if (durationSec > 2700) {
+    audioCtx.close();
+    $('detail1').textContent=`Длинное аудио (${Math.round(durationSec/60)} мин) — без пере-сжатия`;
+    return {blob:file, isWav:false, durationSec};
+  }
+  $('detail1').textContent=`Конвертация (${Math.round(durationSec/60)} мин)...`;
+  const wav=encodeWAVFromBuffer(audioBuffer,16000); // даунмикс на лету, без отдельного Float32-массива
   audioCtx.close();
-  const wav=encodeWAV(mono,16000);
   $('detail1').textContent=`Сжато: ${(wav.size/1024/1024).toFixed(1)} МБ`;
-  return wav;
+  return {blob:wav, isWav:true, durationSec};
+}
+// Кодирует AudioBuffer в 16-бит mono WAV, даунмиксуя каналы инлайн (снижает пик памяти)
+function encodeWAVFromBuffer(audioBuffer,sr){
+  const len=audioBuffer.length, numCh=audioBuffer.numberOfChannels;
+  const chans=[]; for(let c=0;c<numCh;c++) chans.push(audioBuffer.getChannelData(c));
+  const buf=new ArrayBuffer(44+len*2);
+  const v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+len*2,true);ws(8,'WAVE');
+  ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+  ws(36,'data');v.setUint32(40,len*2,true);
+  let off=44;
+  for(let i=0;i<len;i++,off+=2){
+    let s=0; for(let c=0;c<numCh;c++) s+=chans[c][i];
+    s/=numCh;
+    v.setInt16(off,Math.max(-1,Math.min(1,s))*0x7FFF,true);
+  }
+  return new Blob([buf],{type:'audio/wav'});
 }
 function encodeWAV(samples,sr){
   const buf=new ArrayBuffer(44+samples.length*2);
@@ -1158,11 +1399,12 @@ function fmtTime(sec){
   return h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;
 }
 
-async function transcribeWithGroq(blob, apiKey, offsetSec=0){
+async function transcribeWithGroq(blob, apiKey, offsetSec=0, rosterPrompt='', isWav=true){
   const MAX=24*1024*1024;
-  if(blob.size<=MAX){
+  // Не-WAV (фоллбэк декода / большой файл) нельзя байт-резать — шлём одним запросом (C2)
+  if(blob.size<=MAX || !isWav){
     $('detail1').textContent='Отправка на транскрипцию...';
-    return await transcribeChunk(blob,apiKey,'audio.wav',offsetSec);
+    return await transcribeChunk(blob,apiKey,wavName(blob,isWav),offsetSec,rosterPrompt);
   }
   const BPS=32000,HDR=44;
   const chunkSecs=Math.min(600,Math.floor((MAX-HDR)/BPS));
@@ -1177,22 +1419,31 @@ async function transcribeWithGroq(blob, apiKey, offsetSec=0){
     const dv=new DataView(cbuf),ca=new Uint8Array(cbuf);
     ca.set(headerBytes,0);dv.setUint32(4,36+dataArr.length,true);dv.setUint32(40,dataArr.length,true);ca.set(dataArr,HDR);
     $('detail1').textContent=`Транскрипция части ${i+1}/${total}...`;
-    const r=await transcribeChunk(new Blob([cbuf],{type:'audio/wav'}),apiKey,`part${i+1}.wav`,offsetSec+i*chunkSecs);
+    const r=await transcribeChunk(new Blob([cbuf],{type:'audio/wav'}),apiKey,`part${i+1}.wav`,offsetSec+i*chunkSecs,rosterPrompt);
     plainOut+=(i>0?' ':'')+r.plain; tsOut+=(i>0?'\n':'')+r.timestamped;
   }
   return{plain:plainOut,timestamped:tsOut};
 }
+// Имя файла с корректным расширением по MIME (Groq требует распознаваемое расширение)
+function wavName(blob,isWav){
+  if(isWav) return 'audio.wav';
+  const map={'audio/mpeg':'mp3','audio/mp3':'mp3','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac','audio/ogg':'ogg','audio/wav':'wav','audio/x-wav':'wav','audio/flac':'flac','audio/webm':'webm','video/mp4':'mp4'};
+  return 'audio.'+(map[blob.type]||'mp3');
+}
 
-async function transcribeChunk(blob,apiKey,filename,offsetSec=0){
+async function transcribeChunk(blob,apiKey,filename,offsetSec=0,rosterPrompt=''){
   const fd=new FormData();
   fd.append('file',blob,filename||'audio.wav');
   fd.append('model','whisper-large-v3');
-  fd.append('language','ru');
+  if(currentLanguage==='ru') fd.append('language','ru');        // A4: язык
+  else if(currentLanguage==='kk') fd.append('language','kk');
+  // 'auto' — параметр языка опускаем, Whisper детектит сам
   fd.append('response_format','verbose_json');
   fd.append('temperature','0');
-  const res=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{
+  if(rosterPrompt) fd.append('prompt', rosterPrompt);           // A2: биас написания имён
+  const res=await fetchRetry('https://api.groq.com/openai/v1/audio/transcriptions',{
     method:'POST',headers:{'Authorization':`Bearer ${sanitizeKey(apiKey)}`},body:fd
-  });
+  },{label:'Groq'});
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Groq: ${err.error?.message||res.statusText}`);}
   const data=await res.json();
   if(data.segments&&data.segments.length){
@@ -1230,7 +1481,13 @@ function buildPrompt(transcript, context, fileDate) {
     ? `\nТранскрипт содержит метки спикеров (Спикер 1:, Спикер 2: и т.д.). Используй их для определения участников.\nЕсли имена спикеров не упоминаются в тексте — записывай их как "Спикер 1", "Спикер 2" и т.д.\n`
     : `\nЕсли имена участников прямо называются в тексте — запиши их. Если нет — напиши ["Участники не определены"].\n`;
 
-  return `${ctx}${KZ_NOTE}${diarizeNote}
+  // A5: реальный справочник имён как канонический ориентир для нормализации
+  const roster = getRoster();
+  const rosterNote = roster.list
+    ? `\nКАНОНИЧЕСКИЕ ИМЕНА УЧАСТНИКОВ: ${roster.list}. Приводи имена к этим написаниям, даже если в транскрипте они искажены распознаванием речи.\n`
+    : '';
+
+  return `${ctx}${KZ_NOTE}${rosterNote}${diarizeNote}
 ${dateHint}Сегодня: ${today}.
 
 ЗАДАЧА: Проанализируй транскрипт совещания и верни JSON.
@@ -1238,7 +1495,7 @@ ${dateHint}Сегодня: ${today}.
 Верни ТОЛЬКО JSON, без markdown, без пояснений, без тройных кавычек.
 
 Транскрипт:
-${transcript.slice(0, 80000)}
+${transcript.slice(0, 200000)}
 
 Верни JSON в точно таком формате (все поля обязательны):
 {
@@ -1260,15 +1517,17 @@ function parseJSON(raw) {
   if(s!==-1&&e!==-1)clean=clean.slice(s,e+1);
   try{return JSON.parse(clean);}
   catch(err){
-    let r=clean,ob=0,ob2=0,inStr=false,esc=false;
+    let r=clean,stack=[],inStr=false,escp=false;
     for(let i=0;i<r.length;i++){
       const c=r[i];
-      if(esc){esc=false;continue;}if(c==='\\'){esc=true;continue;}
+      if(escp){escp=false;continue;}if(c==='\\'){escp=true;continue;}
       if(c==='"'){inStr=!inStr;continue;}if(inStr)continue;
-      if(c==='{')ob++;else if(c==='}')ob--;else if(c==='[')ob2++;else if(c===']')ob2--;
+      if(c==='{'||c==='[')stack.push(c);
+      else if(c==='}'||c===']')stack.pop();
     }
     if(inStr)r+='"';
-    for(let i=0;i<ob2;i++)r+=']';for(let i=0;i<ob;i++)r+='}';
+    // B3: закрываем реально открытые скобки в LIFO-порядке (а не все ] потом все })
+    for(let i=stack.length-1;i>=0;i--)r+=(stack[i]==='{'?'}':']');
     try{return JSON.parse(r);}
     catch(e2){
       const get=k=>{const m=raw.match(new RegExp(`"${k}"\\s*:\\s*"([^"]{0,500})"`));return m?m[1]:'';};
@@ -1282,29 +1541,31 @@ function parseJSON(raw) {
 // ── CLAUDE ANALYSIS ───────────────────────────────────────────────
 async function analyzeWithClaude(transcript, context, apiKey, fileDate=''){
   const prompt=buildPrompt(transcript,context,fileDate);
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+  const res=await fetchRetry('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':sanitizeKey(apiKey),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:16000,messages:[{role:'user',content:prompt}]})
-  });
+  },{label:'Claude'});
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Claude API: ${err.error?.message||res.statusText}`);}
   const data=await res.json();
+  lastUsage={model:'claude', input:data.usage?.input_tokens||0, output:data.usage?.output_tokens||0}; // E8
   return parseJSON(data.content.map(b=>b.text||'').join(''));
 }
 
 // ── GEMINI ANALYSIS ───────────────────────────────────────────────
 async function analyzeWithGemini(transcript, context, apiKey, fileDate=''){
   const prompt=buildPrompt(transcript,context,fileDate);
-  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{
+  const res=await fetchRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','x-goog-api-key':sanitizeKey(apiKey)}, // D2: ключ в заголовке, не в URL
     body:JSON.stringify({
       contents:[{parts:[{text:prompt}]}],
       generationConfig:{temperature:0.1,maxOutputTokens:16000}
     })
-  });
+  },{label:'Gemini'});
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Gemini API: ${err.error?.message||res.statusText}`);}
   const data=await res.json();
+  lastUsage={model:'gemini', input:data.usageMetadata?.promptTokenCount||0, output:data.usageMetadata?.candidatesTokenCount||0}; // E8
   const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
   if(!raw)throw new Error('Gemini вернул пустой ответ');
   return parseJSON(raw);
@@ -1312,21 +1573,28 @@ async function analyzeWithGemini(transcript, context, apiKey, fileDate=''){
 
 // ── RENDER ────────────────────────────────────────────────────────
 function renderResults(transcript, a){
+  lastAnalysis=a; lastTranscript=transcript;
+  a.participants = Array.isArray(a.participants)?a.participants:(a.participants?[a.participants]:[]);
+
   $('ovDate').textContent=a.date||'—';
   $('ovTopic').textContent=a.topic||'—';
-  $('ovParticipants').textContent=(a.participants||[]).length?(a.participants||[]).join(', '):'—';
+  $('ovParticipants').textContent=a.participants.length?a.participants.join(', '):'—';
   $('ovTasks').textContent=(a.tasks||[]).length;
   $('ovDecisions').textContent=(a.decisions||[]).length;
 
   $('protoDate').textContent=a.date||'—';
   $('protoTopic').textContent=a.topic||'—';
-  $('protoParticipants').textContent=(a.participants||[]).join(', ')||'—';
+  $('protoParticipants').textContent=a.participants.join(', ')||'—';
+
+  renderSpeakerMap(a, transcript);   // A6: маппинг «Спикер N → имя»
+  renderParticipantsEditor(a);       // A6: редактируемый список участников
+
   const agEl=$('protoAgenda');agEl.innerHTML='';
   (a.agenda_items||[]).forEach((item,i)=>{
     agEl.innerHTML+=`<div class="agenda-item">
-      <div class="agenda-q"><span class="agenda-num">${i+1}.</span>${item.question}</div>
-      <div class="agenda-d">✅ ${item.decision}</div>
-      ${item.responsible&&item.responsible!=='Не указан'?`<div class="agenda-r">👤 ${item.responsible}</div>`:''}
+      <div class="agenda-q"><span class="agenda-num">${i+1}.</span>${esc(item.question)}</div>
+      <div class="agenda-d">✅ ${esc(item.decision)}</div>
+      ${item.responsible&&item.responsible!=='Не указан'?`<div class="agenda-r">👤 ${esc(item.responsible)}</div>`:''}
     </div>`;
   });
   if(!(a.agenda_items||[]).length)agEl.innerHTML='<div style="color:var(--text-muted);font-size:12px">Повестка не определена</div>';
@@ -1335,22 +1603,185 @@ function renderResults(transcript, a){
   $('conclusionText').textContent=a.conclusion||'—';
 
   const dec=$('decisionsList');dec.innerHTML='';
-  (a.decisions||[]).forEach((d,i)=>{dec.innerHTML+=`<div class="decision-item"><span class="decision-num">${i+1}.</span><span>${d}</span></div>`;});
+  (a.decisions||[]).forEach((d,i)=>{dec.innerHTML+=`<div class="decision-item"><span class="decision-num">${i+1}.</span><span>${esc(d)}</span></div>`;});
   if(!(a.decisions||[]).length)dec.innerHTML='<div class="decision-item"><span style="color:var(--text-muted)">Решений не зафиксировано</span></div>';
 
   const tl=$('tasksList');tl.innerHTML='';
   (a.tasks||[]).forEach(t=>{
     tl.innerHTML+=`<div class="task-item">
-      <div class="task-title">${t.title}</div>
+      <div class="task-title">${esc(t.title)}</div>
       <div class="task-meta">
-        <span class="task-tag responsible">👤 ${t.responsible}</span>
-        <span class="task-tag deadline">📅 ${t.deadline}</span>
-        <span class="task-tag priority">⚡ ${t.priority}</span>
+        <span class="task-tag responsible">👤 ${esc(t.responsible)}</span>
+        <span class="task-tag deadline">📅 ${esc(t.deadline)}</span>
+        <span class="task-tag priority">⚡ ${esc(t.priority)}</span>
       </div>
     </div>`;
   });
   if(!(a.tasks||[]).length)tl.innerHTML='<div class="task-item"><div class="task-title" style="color:var(--text-muted)">Задач не зафиксировано</div></div>';
-  $('transcriptText').textContent=transcript;
+
+  $('transcriptText').innerHTML=renderTranscriptHTML(transcript); // E5: кликабельные таймкоды (после esc)
+  setupAudioPlayer();   // E5
+  renderCost();         // E8
+  if($('transcriptSearch')) $('transcriptSearch').value='';
+}
+
+// ── A6: РЕДАКТИРОВАНИЕ ИМЁН + МАППИНГ СПИКЕРОВ ─────────────────────
+function renderParticipantsEditor(a){
+  const box=$('participantsEditor'); if(!box) return;
+  box.innerHTML=`<div class="speaker-map-title">Участники (можно отредактировать)</div>
+    <input id="participantsInput" type="text" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;" value="${esc(a.participants.join(', '))}">`;
+  $('participantsInput').addEventListener('change',e=>{
+    a.participants=e.target.value.split(',').map(s=>s.trim()).filter(Boolean);
+    $('ovParticipants').textContent=a.participants.join(', ')||'—';
+    $('protoParticipants').textContent=a.participants.join(', ')||'—';
+  });
+}
+function renderSpeakerMap(a, transcript){
+  const box=$('speakerMapBox'); if(!box) return;
+  const labels=[...new Set((transcript.match(/Спикер\s+\d+/g)||[]))];
+  if(!labels.length){ box.innerHTML=''; box.style.display='none'; return; }
+  box.style.display='block';
+  const roster=getRoster().names;
+  box.innerHTML=`<div class="speaker-map">
+    <div class="speaker-map-title">Сопоставьте спикеров с именами → «Применить»</div>
+    ${labels.map(l=>`<div class="speaker-row"><span class="spk-from">${esc(l)}</span><input type="text" list="rosterNames" data-spk="${esc(l)}" placeholder="реальное имя"></div>`).join('')}
+    <datalist id="rosterNames">${roster.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <button class="copy-btn" style="margin-top:6px" onclick="applySpeakerMap()">Применить имена</button>
+  </div>`;
+}
+function applySpeakerMap(){
+  if(!lastAnalysis) return;
+  const map={};
+  $('speakerMapBox').querySelectorAll('input[data-spk]').forEach(inp=>{
+    const v=inp.value.trim(); if(v) map[inp.getAttribute('data-spk')]=v;
+  });
+  if(!Object.keys(map).length) return;
+  const repl=s=>{ let r=String(s==null?'':s); for(const k in map) r=r.split(k).join(map[k]); return r; };
+  const t=repl(lastTranscript);
+  const a=lastAnalysis;
+  a.participants=(a.participants||[]).map(repl);
+  Object.values(map).forEach(n=>{ if(!a.participants.includes(n)) a.participants.push(n); });
+  (a.agenda_items||[]).forEach(it=>{ it.question=repl(it.question); it.decision=repl(it.decision); it.responsible=repl(it.responsible); });
+  a.decisions=(a.decisions||[]).map(repl);
+  (a.tasks||[]).forEach(x=>{ x.title=repl(x.title); x.responsible=repl(x.responsible); });
+  a.summary=repl(a.summary); a.conclusion=repl(a.conclusion); a.context=repl(a.context);
+  renderResults(t, a);
+}
+
+// ── E5: ТРАНСКРИПТ С КЛИКАБЕЛЬНЫМИ ТАЙМКОДАМИ + АУДИО ──────────────
+function tsToSec(str){ const p=str.split(':').map(Number); return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1]; }
+function renderTranscriptHTML(transcript){
+  return esc(transcript).replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g,(m,t)=>`<span class="ts-link" data-sec="${tsToSec(t)}">[${t}]</span>`);
+}
+function setupAudioPlayer(){
+  const ap=$('audioPlayer'); if(!ap) return;
+  if(audioObjURL){ ap.src=audioObjURL; ap.style.display='block'; }
+  else { ap.removeAttribute('src'); ap.style.display='none'; }
+}
+
+// ── E6: ПОИСК ПО ТРАНСКРИПТУ ──────────────────────────────────────
+let _searchMatches=[], _searchIdx=-1;
+function searchTranscript(){
+  const cont=$('transcriptText'); if(!cont) return;
+  cont.innerHTML=renderTranscriptHTML(lastTranscript||cont.textContent);
+  _searchMatches=[]; _searchIdx=-1;
+  const q=($('transcriptSearch').value||'').trim();
+  if(!q){ $('searchCount').textContent=''; return; }
+  const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+  highlightInNode(cont, re);
+  _searchMatches=[...cont.querySelectorAll('mark')];
+  $('searchCount').textContent=_searchMatches.length?`${_searchMatches.length} совпадений`:'нет совпадений';
+  if(_searchMatches.length) searchNav(1);
+}
+function highlightInNode(node, re){
+  [...node.childNodes].forEach(child=>{
+    if(child.nodeType===3){
+      const txt=child.nodeValue; let last=0,m,frag=null; re.lastIndex=0;
+      while((m=re.exec(txt))){
+        frag=frag||document.createDocumentFragment();
+        if(m.index>last) frag.appendChild(document.createTextNode(txt.slice(last,m.index)));
+        const mk=document.createElement('mark'); mk.textContent=m[0]; frag.appendChild(mk);
+        last=m.index+m[0].length;
+        if(m.index===re.lastIndex) re.lastIndex++;
+      }
+      if(frag){ if(last<txt.length) frag.appendChild(document.createTextNode(txt.slice(last))); child.replaceWith(frag); }
+    } else if(child.nodeType===1 && child.tagName!=='MARK' && !child.classList?.contains('ts-link')){
+      highlightInNode(child, re);
+    }
+  });
+}
+function searchNav(dir){
+  if(!_searchMatches.length) return;
+  if(_searchIdx>=0) _searchMatches[_searchIdx].classList.remove('active-match');
+  _searchIdx=(_searchIdx+dir+_searchMatches.length)%_searchMatches.length;
+  const m=_searchMatches[_searchIdx]; m.classList.add('active-match'); m.scrollIntoView({block:'center'});
+  $('searchCount').textContent=`${_searchIdx+1} / ${_searchMatches.length}`;
+}
+
+// ── E8: СТОИМОСТЬ ─────────────────────────────────────────────────
+function renderCost(){
+  const el=$('costLine'); if(!el) return;
+  if(!lastUsage){ el.textContent=''; return; }
+  const price=lastUsage.model==='gemini'?{i:0.30,o:2.50}:{i:3,o:15}; // $/1М ток (правится в коде)
+  const cost=(lastUsage.input/1e6*price.i)+(lastUsage.output/1e6*price.o);
+  el.textContent=`Стоимость анализа: ~$${cost.toFixed(4)} · вход ${lastUsage.input} ток · выход ${lastUsage.output} ток · ${lastUsage.model}`;
+}
+
+// ── E4: ЗАДАЧИ → ПИСЬМО / .ICS ────────────────────────────────────
+function tasksToEmail(){
+  const a=lastAnalysis; if(!a||!(a.tasks||[]).length){ showError('Нет задач'); return; }
+  const lines=a.tasks.map((t,i)=>`${i+1}. ${t.title}\n   Ответственный: ${t.responsible} · Срок: ${t.deadline} · Приоритет: ${t.priority}`);
+  const subject=`Задачи по совещанию: ${a.topic||''} ${a.date||''}`.trim();
+  const body=`По итогам совещания «${a.topic||''}» (${a.date||''}):\n\n`+lines.join('\n\n');
+  location.href=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+function parseDeadline(s){
+  const m=String(s||'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+  if(m){ let y=+m[3]; if(y<100)y+=2000; return new Date(y,+m[2]-1,+m[1]); }
+  return null;
+}
+function tasksToICS(){
+  const a=lastAnalysis; if(!a||!(a.tasks||[]).length){ showError('Нет задач'); return; }
+  const pad=n=>String(n).padStart(2,'0');
+  const evts=a.tasks.map(t=>{
+    const d=parseDeadline(t.deadline); if(!d) return '';
+    const dt=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+    return `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dt}\nSUMMARY:${String(t.title||'').replace(/\n/g,' ')}\nDESCRIPTION:Ответственный ${t.responsible||''} Приоритет ${t.priority||''}\nEND:VEVENT`;
+  }).filter(Boolean);
+  if(!evts.length){ showError('Нет задач с распознанным сроком'); return; }
+  downloadFile(`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MeetingAnalyzer//RU\n${evts.join('\n')}\nEND:VCALENDAR`, `задачи_${a.date||''}.ics`.replace(/[\\/:*?"<>|]/g,'_'));
+}
+
+// ── E1: ЭКСПОРТ .DOC / ПЕЧАТЬ-PDF ─────────────────────────────────
+function buildProtocolHTML(){
+  const a=lastAnalysis||{};
+  const agenda=(a.agenda_items||[]).map((it,i)=>`<p><b>${i+1}. ${esc(it.question)}</b><br>Решение: ${esc(it.decision)}${it.responsible&&it.responsible!=='Не указан'?'<br>Ответственный: '+esc(it.responsible):''}</p>`).join('');
+  const decisions=(a.decisions||[]).map(d=>`<li>${esc(d)}</li>`).join('');
+  const tasks=(a.tasks||[]).map((t,i)=>`<tr><td>${i+1}</td><td>${esc(t.title)}</td><td>${esc(t.responsible)}</td><td>${esc(t.deadline)}</td><td>${esc(t.priority)}</td></tr>`).join('');
+  return `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset="utf-8"><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.4;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #333;padding:4px 8px;font-size:11pt;}h1{font-size:16pt;text-align:center;}h2{font-size:13pt;border-bottom:1px solid #999;}</style></head><body>
+  <h1>ПРОТОКОЛ СОВЕЩАНИЯ</h1>
+  <p><b>Дата:</b> ${esc(a.date||'')}<br><b>Тема:</b> ${esc(a.topic||'')}<br><b>Участники:</b> ${esc((a.participants||[]).join(', '))}</p>
+  <p><b>Контекст:</b> ${esc(a.context||'')}</p>
+  <h2>Краткое резюме</h2><p>${esc(a.summary||'')}</p>
+  <h2>Вопросы повестки и решения</h2>${agenda||'<p>—</p>'}
+  <h2>Ключевые решения</h2><ol>${decisions||'<li>—</li>'}</ol>
+  <h2>Задачи и ответственные</h2><table><tr><th>№</th><th>Задача</th><th>Ответственный</th><th>Срок</th><th>Приоритет</th></tr>${tasks}</table>
+  <h2>Заключение</h2><p>${esc(a.conclusion||'')}</p>
+  <br><br><p>Секретарь _______________ &nbsp;&nbsp; Председатель _______________</p>
+  </body></html>`;
+}
+function downloadDocx(){
+  if(!lastAnalysis){ showError('Нет данных'); return; }
+  const blob=new Blob(['﻿'+buildProtocolHTML()],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url; link.download=`протокол_${lastAnalysis.date||''}_${lastAnalysis.topic||''}`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.doc';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+}
+function printProtocol(){
+  if(!lastAnalysis){ showError('Нет данных'); return; }
+  const w=window.open('','_blank'); if(!w){ showError('Разрешите всплывающие окна для печати'); return; }
+  w.document.write(buildProtocolHTML()); w.document.close(); w.focus(); setTimeout(()=>w.print(),300);
 }
 
 function copyEl(id){navigator.clipboard.writeText($(id).textContent);}
@@ -1369,7 +1800,7 @@ function downloadTranscript() {
   const text = $('transcriptText').textContent;
   const topic = $('ovTopic').textContent || 'совещание';
   const date  = $('ovDate').textContent || '';
-  const filename = `транскрипт_${date}_${topic}.txt`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.txt';
+  const filename = `транскрипт_${date}_${topic}`.replace(/[\\/:*?"<>|]/g,'_').slice(0,76)+'.txt';
   const header = `ТРАНСКРИПТ СОВЕЩАНИЯ\nДата: ${date}\nТема: ${topic}\n${'='.repeat(50)}\n\n`;
   downloadFile(header + text, filename);
 }
@@ -1408,7 +1839,7 @@ function downloadFullReport() {
   });
   report += `\n${sep}\nПОЛНЫЙ ТРАНСКРИПТ\n${sep}\n${transcript}`;
 
-  const filename = `отчёт_${date}_${topic}.txt`.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.txt';
+  const filename = `отчёт_${date}_${topic}`.replace(/[\\/:*?"<>|]/g,'_').slice(0,76)+'.txt';
   downloadFile(report, filename);
 }
 
@@ -1424,6 +1855,12 @@ function downloadFile(text, filename) {
 
 function resetAll(){
   selectedFiles=[];chatHistory=[];chatTranscript='';chatAnalysis=null;
+  lastAnalysis=null;lastTranscript='';
+  progReset();
+  if(audioObjURL){ URL.revokeObjectURL(audioObjURL); audioObjURL=''; }
+  const ap=$('audioPlayer'); if(ap){ ap.removeAttribute('src'); ap.style.display='none'; }
+  if($('transcriptSearch')) $('transcriptSearch').value='';
+  if($('searchCount')) $('searchCount').textContent='';
   $('fileName').textContent='';
   uploadZone.classList.remove('has-file');
   fileInput.value='';
@@ -1438,8 +1875,9 @@ function resetAll(){
 }
 
 // ── CHAT ──────────────────────────────────────────────────────────
-function initChat(transcript,analysis,apiKey){
+function initChat(transcript,analysis,apiKey,model){
   chatTranscript=transcript;chatAnalysis=analysis;chatApiKey=apiKey;chatHistory=[];
+  chatModel = model || currentModel;   // B2: чат использует модель, создавшую анализ
 }
 function useSuggestion(el){
   $('chatInput').value=el.textContent;
@@ -1451,7 +1889,8 @@ function addMessage(role,text,thinking=false){
   const msgs=$('chatMessages');
   const div=document.createElement('div');
   div.className=`chat-msg ${role}`+(thinking?' thinking':'');
-  div.innerHTML=`<div class="chat-avatar">${role==='user'?'👤':'🤖'}</div><div class="chat-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  div.innerHTML=`<div class="chat-avatar">${role==='user'?'👤':'🤖'}</div><div class="chat-bubble"></div>`;
+  const b=div.querySelector('.chat-bubble'); b.style.whiteSpace='pre-wrap'; b.textContent=text; // D1: текст, не HTML
   msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
   return div;
 }
@@ -1464,8 +1903,9 @@ async function sendChat(){
   addMessage('user',text);
   const thinkingEl=addMessage('ai','⏳ думаю...',true);
 
+  const _r=getRoster();
   const sysPrompt=`Ты помощник по анализу совещания. Отвечай кратко и по делу на русском языке.
-${KZ_NOTE}
+${KZ_NOTE}${_r.list?`\nКанонические имена участников: ${_r.list}. Используй именно эти написания.`:''}
 
 Совещание:
 Дата: ${chatAnalysis?.date||'—'}  Тема: ${chatAnalysis?.topic||'—'}
@@ -1478,35 +1918,35 @@ ${chatTranscript.slice(0,60000)}`;
   chatHistory.push({role:'user',content:text});
   try{
     let reply='';
-    if(currentModel==='gemini'){
+    if(chatModel==='gemini'){   // B2: модель чата = модель, создавшая анализ
       const msgs=chatHistory.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${chatApiKey}`,{
-        method:'POST',headers:{'Content-Type':'application/json'},
+      const r=await fetchRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',{
+        method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':sanitizeKey(chatApiKey)}, // D2
         body:JSON.stringify({
           systemInstruction:{parts:[{text:sysPrompt}]},
           contents:msgs,
           generationConfig:{temperature:0.2,maxOutputTokens:2048}
         })
-      });
+      },{label:'Gemini'});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error?.message||r.statusText);
       reply=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     } else {
-      const r=await fetch('https://api.anthropic.com/v1/messages',{
+      const r=await fetchRetry('https://api.anthropic.com/v1/messages',{
         method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':chatApiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        headers:{'Content-Type':'application/json','x-api-key':sanitizeKey(chatApiKey),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2048,system:sysPrompt,messages:chatHistory})
-      });
+      },{label:'Claude'});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error?.message||r.statusText);
       reply=d.content.map(b=>b.text||'').join('').trim();
     }
     chatHistory.push({role:'assistant',content:reply});
     thinkingEl.classList.remove('thinking');
-    thinkingEl.querySelector('.chat-bubble').innerHTML=reply.replace(/\n/g,'<br>');
+    const cb=thinkingEl.querySelector('.chat-bubble'); cb.style.whiteSpace='pre-wrap'; cb.textContent=reply; // D1
     $('chatMessages').scrollTop=$('chatMessages').scrollHeight;
   }catch(e){
-    thinkingEl.querySelector('.chat-bubble').innerHTML=`<span style="color:var(--danger)">Ошибка: ${e.message}</span>`;
+    const cb=thinkingEl.querySelector('.chat-bubble'); cb.innerHTML=''; const sp=document.createElement('span'); sp.style.color='var(--danger)'; sp.textContent='Ошибка: '+e.message; cb.appendChild(sp); // D1
   }
   sendBtn.disabled=false;input.focus();
 }
@@ -1522,17 +1962,25 @@ document.addEventListener('DOMContentLoaded',()=>{
     inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px';});
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}});
   }
+  // E5: клик по таймкоду в транскрипте → перемотка плеера
+  document.addEventListener('click',e=>{
+    if(e.target.classList&&e.target.classList.contains('ts-link')){
+      const ap=$('audioPlayer'),sec=parseFloat(e.target.getAttribute('data-sec'));
+      if(ap&&audioObjURL&&isFinite(sec)){ ap.currentTime=sec; ap.play().catch(()=>{}); ap.scrollIntoView({block:'nearest'}); }
+    }
+  });
 });
 
 // ── DEEPGRAM TRANSCRIPTION ────────────────────────────────────────
-async function transcribeWithDeepgram(blob, apiKey, offsetSec=0){
+async function transcribeWithDeepgram(blob, apiKey, offsetSec=0, keyterms=[], isWav=true){
   const MAX = 100 * 1024 * 1024;
-  if (blob.size <= MAX) {
+  // Не-WAV (фоллбэк декода / большой файл) нельзя байт-резать — один запрос (C2)
+  if (blob.size <= MAX || !isWav) {
     $('detail1').textContent = 'Отправка в Deepgram...';
-    return await deepgramChunk(blob, apiKey, offsetSec);
+    return await deepgramChunk(blob, apiKey, offsetSec, keyterms);
   }
   const BPS=32000, HDR=44;
-  const chunkSecs = Math.floor((MAX - HDR) / BPS);
+  const chunkSecs = Math.min(900, Math.floor((MAX - HDR) / BPS)); // C6: не >15 мин на запрос
   const chunkBytes = chunkSecs * BPS;
   const total = Math.ceil((blob.size-HDR)/chunkBytes);
   const headerBytes = new Uint8Array(await blob.slice(0,HDR).arrayBuffer());
@@ -1544,22 +1992,25 @@ async function transcribeWithDeepgram(blob, apiKey, offsetSec=0){
     const dv=new DataView(cb), ca=new Uint8Array(cb);
     ca.set(headerBytes,0); dv.setUint32(4,36+da.length,true); dv.setUint32(40,da.length,true); ca.set(da,HDR);
     $('detail1').textContent=`Deepgram: часть ${i+1}/${total}...`;
-    const r = await deepgramChunk(new Blob([cb],{type:'audio/wav'}), apiKey, offsetSec+i*chunkSecs);
+    const r = await deepgramChunk(new Blob([cb],{type:'audio/wav'}), apiKey, offsetSec+i*chunkSecs, keyterms);
     plainOut+=(i>0?' ':'')+r.plain; tsOut+=(i>0?'\n':'')+r.timestamped;
   }
   return{plain:plainOut, timestamped:tsOut};
 }
 
-async function deepgramChunk(blob, apiKey, offsetSec=0) {
+async function deepgramChunk(blob, apiKey, offsetSec=0, keyterms=[]) {
+  // A4: nova-3 не имеет казахской модели → для kk/auto берём multi (code-switching RU/KZ), для ru — ru
+  const dgLang = currentLanguage==='ru' ? 'ru' : 'multi';
   const params = new URLSearchParams({
-    model:'nova-3', language:'ru', punctuate:'true',
+    model:'nova-3', language:dgLang, punctuate:'true',
     words:'true', smart_format:'true', diarize:'true', utterances:'true'
   });
-  const res = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
+  keyterms.forEach(k=>params.append('keyterm', k)); // A3: биас распознавания имён
+  const res = await fetchRetry(`https://api.deepgram.com/v1/listen?${params}`, {
     method:'POST',
-    headers:{'Authorization':`Token ${sanitizeKey(apiKey)}`,'Content-Type':'audio/wav'},
+    headers:{'Authorization':`Token ${sanitizeKey(apiKey)}`,'Content-Type':blob.type||'audio/wav'},
     body: blob
-  });
+  },{label:'Deepgram'});
   if (!res.ok) {
     const err = await res.json().catch(()=>({}));
     throw new Error(`Deepgram: ${err.err_msg || err.message || res.statusText}`);
@@ -1646,11 +2097,12 @@ async function makeProtocolFromTranscript() {
     const analysis = currentProtoModel === 'gemini'
       ? await analyzeWithGemini(savedPlainTranscript, context, apiKey, fileDate)
       : await analyzeWithClaude(savedPlainTranscript, context, apiKey, fileDate);
-    localStorage.setItem(currentProtoModel === 'claude' ? 'anthropic_key' : 'gemini_key', apiKey);
+    safeSetItem(currentProtoModel === 'claude' ? 'anthropic_key' : 'gemini_key', apiKey);
+    chatModel = currentProtoModel;                                       // B2
     $('transcriptOnlyResult').classList.remove('visible');
     renderResults(savedPlainTranscript, analysis);
-    initChat(savedPlainTranscript, analysis, apiKey);
-    saveToHistory(savedPlainTranscript, analysis, savedTranscriptFilename, 'analysis');
+    initChat(savedPlainTranscript, analysis, apiKey, currentProtoModel); // B2
+    saveToHistory(savedPlainTranscript, analysis, savedTranscriptFilename, 'analysis'); // B1
     $('results').classList.add('visible');
     setTimeout(()=>$('results').scrollIntoView({behavior:'smooth',block:'start'}), 100);
   } catch(err) {
