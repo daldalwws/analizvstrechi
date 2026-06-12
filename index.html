@@ -747,10 +747,12 @@ async function fetchRetry(url,opts,{retries=4,timeoutMs=180000,label=''}={}){
       return res;
     }catch(e){
       clearTimeout(t);
+      const aborted = e.name==='AbortError';
       if(attempt<retries){
         await new Promise(r=>setTimeout(r,Math.min(30000,(2**attempt)*1000)+Math.random()*500));
         continue;
       }
+      if(aborted) throw new Error(`Превышено время ожидания${label?' ('+label+')':''} — проверьте сеть или используйте файл меньшего размера/длительности`);
       throw new Error(`Проблема с сетью${label?' ('+label+')':''}: ${e.message}`);
     }
   }
@@ -1332,51 +1334,75 @@ async function analyze() {
 }
 
 // ── AUDIO COMPRESSION ─────────────────────────────────────────────
-// Возвращает {blob, isWav, durationSec}. C1: гард от OOM на длинном аудио/мобильных.
+// Длительность через метаданные <audio> — без полного декода и без большой памяти (HOTFIX)
+function probeDuration(file){
+  return new Promise(res=>{
+    try{
+      const el=document.createElement('audio');
+      el.preload='metadata';
+      const url=URL.createObjectURL(file);
+      let settled=false;
+      const done=v=>{ if(settled)return; settled=true; URL.revokeObjectURL(url); el.removeAttribute('src'); res(v); };
+      el.onloadedmetadata=()=>done(el.duration);
+      el.onerror=()=>done(0);
+      setTimeout(()=>done(el.duration||0), 8000); // фоллбэк, если метаданные не пришли
+      el.src=url;
+    }catch(e){ res(0); }
+  });
+}
+
+// Потолок безопасного декода в браузере (декод грузит весь PCM в память). >4ч → мультифайл.
+const MAX_DECODE_SEC = 14400;
+// Возвращает {blob, isWav, durationSec}. Транскодит в 16к mono WAV (сжатие ~1.9 МБ/мин +
+// предусловие чанкинга) — это и делает большие файлы (до 500–600 МБ) рабочими. HOTFIX.
 async function compressAudio(file) {
-  // Очень большие файлы не декодируем в браузере — декод грузит весь PCM в память → краш вкладки.
-  if (file.size > 60*1024*1024) {
-    $('detail1').textContent='Большой файл — отправка без пере-сжатия...';
-    return {blob:file, isWav:false, durationSec:0};
+  const dur = await probeDuration(file);
+  // Декодируем, если длительность в пределах потолка; если она неизвестна — решаем по размеру
+  const decodable = (isFinite(dur) && dur > 0) ? (dur <= MAX_DECODE_SEC) : (file.size <= 200*1024*1024);
+  if (!decodable) {
+    $('detail1').textContent = `Очень длинный файл (${dur?Math.round(dur/60)+' мин':'>200 МБ'}) — без пере-сжатия; для Groq разбейте на части`;
+    return {blob:file, isWav:false, durationSec: isFinite(dur)?dur:0};
   }
   $('detail1').textContent='Декодирование аудио...';
   let arrayBuffer=await file.arrayBuffer();
   const audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
   let audioBuffer;
   try { audioBuffer=await audioCtx.decodeAudioData(arrayBuffer); }
-  catch(e) { audioCtx.close(); arrayBuffer=null; return {blob:file, isWav:false, durationSec:0}; } // C2: не байт-резать контейнер
+  catch(e) { audioCtx.close(); arrayBuffer=null; return {blob:file, isWav:false, durationSec: isFinite(dur)?dur:0}; } // C2: не байт-резать контейнер
   arrayBuffer=null;
-  const durationSec=audioBuffer.duration;
-  // Длинное аудио (>45 мин): не пере-кодируем (Float32 на всю длину = OOM), шлём оригинал.
-  if (durationSec > 2700) {
-    audioCtx.close();
-    $('detail1').textContent=`Длинное аудио (${Math.round(durationSec/60)} мин) — без пере-сжатия`;
-    return {blob:file, isWav:false, durationSec};
-  }
+  const durationSec=audioBuffer.duration||dur||0;
   $('detail1').textContent=`Конвертация (${Math.round(durationSec/60)} мин)...`;
-  const wav=encodeWAVFromBuffer(audioBuffer,16000); // даунмикс на лету, без отдельного Float32-массива
+  const wav=encodeWAVFromBuffer(audioBuffer,16000); // 16к mono, посегментно
   audioCtx.close();
   $('detail1').textContent=`Сжато: ${(wav.size/1024/1024).toFixed(1)} МБ`;
   return {blob:wav, isWav:true, durationSec};
 }
-// Кодирует AudioBuffer в 16-бит mono WAV, даунмиксуя каналы инлайн (снижает пик памяти)
+// Кодирует AudioBuffer в 16-бит mono WAV, даунмикс инлайн. Данные собираются ПОСЕГМЕНТНО,
+// чтобы не аллоцировать один гигантский буфер (для 4ч ≈ 460 МБ — аллокация падает). HOTFIX.
 function encodeWAVFromBuffer(audioBuffer,sr){
   const len=audioBuffer.length, numCh=audioBuffer.numberOfChannels;
   const chans=[]; for(let c=0;c<numCh;c++) chans.push(audioBuffer.getChannelData(c));
-  const buf=new ArrayBuffer(44+len*2);
-  const v=new DataView(buf);
+  const header=new ArrayBuffer(44);
+  const v=new DataView(header);
   const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
   ws(0,'RIFF');v.setUint32(4,36+len*2,true);ws(8,'WAVE');
   ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
   v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
   ws(36,'data');v.setUint32(40,len*2,true);
-  let off=44;
-  for(let i=0;i<len;i++,off+=2){
-    let s=0; for(let c=0;c<numCh;c++) s+=chans[c][i];
-    s/=numCh;
-    v.setInt16(off,Math.max(-1,Math.min(1,s))*0x7FFF,true);
+  const parts=[header];
+  const SEG=1<<20; // ~1 млн сэмплов/сегмент (~2 МБ)
+  for(let start=0;start<len;start+=SEG){
+    const end=Math.min(start+SEG,len);
+    const seg=new DataView(new ArrayBuffer((end-start)*2));
+    let o=0;
+    for(let i=start;i<end;i++,o+=2){
+      let s=0; for(let c=0;c<numCh;c++) s+=chans[c][i];
+      s/=numCh;
+      seg.setInt16(o,Math.max(-1,Math.min(1,s))*0x7FFF,true);
+    }
+    parts.push(seg.buffer);
   }
-  return new Blob([buf],{type:'audio/wav'});
+  return new Blob(parts,{type:'audio/wav'});
 }
 function encodeWAV(samples,sr){
   const buf=new ArrayBuffer(44+samples.length*2);
@@ -1443,7 +1469,7 @@ async function transcribeChunk(blob,apiKey,filename,offsetSec=0,rosterPrompt='')
   if(rosterPrompt) fd.append('prompt', rosterPrompt);           // A2: биас написания имён
   const res=await fetchRetry('https://api.groq.com/openai/v1/audio/transcriptions',{
     method:'POST',headers:{'Authorization':`Bearer ${sanitizeKey(apiKey)}`},body:fd
-  },{label:'Groq'});
+  },{label:'Groq',timeoutMs:600000}); // 10 мин/чанк для больших аудио
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Groq: ${err.error?.message||res.statusText}`);}
   const data=await res.json();
   if(data.segments&&data.segments.length){
@@ -2010,7 +2036,7 @@ async function deepgramChunk(blob, apiKey, offsetSec=0, keyterms=[]) {
     method:'POST',
     headers:{'Authorization':`Token ${sanitizeKey(apiKey)}`,'Content-Type':blob.type||'audio/wav'},
     body: blob
-  },{label:'Deepgram'});
+  },{label:'Deepgram',timeoutMs:600000}); // 10 мин/чанк для больших аудио
   if (!res.ok) {
     const err = await res.json().catch(()=>({}));
     throw new Error(`Deepgram: ${err.err_msg || err.message || res.statusText}`);
