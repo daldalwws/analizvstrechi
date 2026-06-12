@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta http-equiv="Pragma" content="no-cache">
+<!-- CSP (D2): жёсткий connect-src блокирует увод ключей/данных на чужой домен при XSS -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.groq.com https://api.deepgram.com https://api.anthropic.com https://generativelanguage.googleapis.com; img-src 'self' data: blob:; media-src blob: data:; object-src 'none'; base-uri 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
 <title>Анализ совещания</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- E11: без Google Fonts CDN — работает офлайн на закрытых машинах; системные fallback'и serif/monospace заданы в CSS -->
 <style>
 :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1a1e2a;--border:#252b3b;--accent:#e8c870;--accent2:#6eb5ff;--accent3:#7deba0;--danger:#ff6b6b;--text:#e8eaf0;--text-muted:#6b7694;--text-dim:#5a6280;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -336,6 +340,15 @@ textarea.roster-input::placeholder{color:var(--text-dim);}
 .lang-opt:hover{border-color:var(--text-muted);}
 .lang-opt.active{border-color:var(--accent3);background:rgba(125,235,160,.06);color:var(--accent3);}
 
+/* ── PROTOCOL TEMPLATE SELECTOR (E7) ── */
+.tpl-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+.tpl-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .2s;color:var(--text);}
+.tpl-opt:hover{border-color:var(--text-muted);}
+.tpl-opt.active{border-color:var(--accent);background:rgba(232,200,112,.06);}
+.tpl-opt .tpl-name{font-size:12px;}
+.tpl-opt.active .tpl-name{color:var(--accent);}
+.tpl-opt .tpl-desc{font-size:10px;color:var(--text-dim);margin-top:2px;line-height:1.4;}
+
 /* ── SPEAKER MAP / EDITABLE PARTICIPANTS ── */
 .speaker-map{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
 .speaker-map-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;}
@@ -380,7 +393,7 @@ mark.active-match{background:var(--accent3);}
 <header>
   <div class="header-label">Meeting Analyzer</div>
   <h1>Анализ <span>совещания</span></h1>
-  <div class="header-sub">Загрузите аудио — получите транскрипт или полный протокол с задачами</div>
+  <div class="header-sub">Загрузите аудио — получите транскрипт или полный протокол с задачами <span id="buildStamp" style="opacity:.4;font-size:10px;"></span></div>
 </header>
 
 <!-- ── MODE TABS ──────────────────────────────────────────────────── -->
@@ -469,6 +482,15 @@ mark.active-match{background:var(--accent3);}
     <div class="field full analysis-only" id="fieldContext">
       <label>Контекст совещания (необязательно)</label>
       <input type="text" id="meetingContext" placeholder="Например: встреча по БТ операционных рисков в ELMA">
+    </div>
+    <div class="field full analysis-only" id="fieldTemplate">
+      <label>Шаблон протокола</label>
+      <div class="tpl-selector">
+        <div class="tpl-opt active" id="tplFull" onclick="selectTemplate('full')"><div class="tpl-name">Полный</div><div class="tpl-desc">Повестка, решения, задачи, резюме</div></div>
+        <div class="tpl-opt" id="tplSummary" onclick="selectTemplate('summary')"><div class="tpl-name">Краткое резюме</div><div class="tpl-desc">Резюме и заключение, без задач</div></div>
+        <div class="tpl-opt" id="tplGost" onclick="selectTemplate('gost')"><div class="tpl-name">Комитет (ГОСТ)</div><div class="tpl-desc">СЛУШАЛИ / ПОСТАНОВИЛИ</div></div>
+        <div class="tpl-opt" id="tplTasks" onclick="selectTemplate('tasks')"><div class="tpl-name">Только задачи</div><div class="tpl-desc">Список поручений и сроков</div></div>
+      </div>
     </div>
   </div>
   </div><!-- /panel-body -->
@@ -707,6 +729,7 @@ mark.active-match{background:var(--accent3);}
 
 <script>
 function sanitizeKey(k){return(k||'').replace(/[^\x20-\x7E]/g,'').trim();}
+const BUILD='2026-06-12'; // версия билда — проверка, что загружена свежая страница (не кэш)
 
 // ══════════════════════════════════════════════════════════════════
 // SHARED HELPERS (аудит-харднинг)
@@ -747,13 +770,14 @@ async function fetchRetry(url,opts,{retries=4,timeoutMs=180000,label=''}={}){
       return res;
     }catch(e){
       clearTimeout(t);
-      const aborted = e.name==='AbortError';
+      const aborted = e.name==='AbortError' || /abort/i.test(e.message||'');
       if(attempt<retries){
         await new Promise(r=>setTimeout(r,Math.min(30000,(2**attempt)*1000)+Math.random()*500));
         continue;
       }
-      if(aborted) throw new Error(`Превышено время ожидания${label?' ('+label+')':''} — проверьте сеть или используйте файл меньшего размера/длительности`);
-      throw new Error(`Проблема с сетью${label?' ('+label+')':''}: ${e.message}`);
+      const hint=' · если повторяется — обновите страницу (Ctrl/Cmd+Shift+R)';
+      if(aborted) throw new Error(`Превышено время ожидания${label?' ('+label+')':''} — проверьте сеть или используйте файл меньшего размера/длительности${hint}`);
+      throw new Error(`Проблема с сетью${label?' ('+label+')':''}: ${e.message}${hint}`);
     }
   }
 }
@@ -963,7 +987,7 @@ function renderHistory() {
     const modeIcon = entry.mode === 'transcript' ? '📝' : '🎙';
     item.innerHTML = `
       <div class="history-item-icon">${modeIcon}</div>
-      <div class="history-item-info" onclick="loadFromHistory(${entry.id})">
+      <div class="history-item-info" role="button" tabindex="0" onclick="loadFromHistory(${entry.id})">
         <div class="history-item-topic">${esc(entry.topic)}</div>
         <div class="history-item-meta">${esc(entry.date)} · ${esc(entry.filename)} · сохранено ${esc(entry.savedAt)}</div>
       </div>
@@ -1011,6 +1035,7 @@ let savedPlainTranscript = '', savedTranscriptFilename = '';
 let chatHistory = [], chatTranscript = '', chatAnalysis = null, chatApiKey = '';
 let lastTranscriptFilename = '';
 let currentLanguage = 'auto';   // 'auto' | 'ru' | 'kk' — язык транскрипции (A4)
+let protocolTemplate = 'full';  // 'full' | 'summary' | 'gost' | 'tasks' — шаблон протокола (E7)
 let chatModel = 'claude';       // модель, реально создавшая анализ (B2)
 let audioObjURL = '';           // object URL исходного аудио для плеера (E5)
 let lastAnalysis = null;        // текущий объект анализа (редактируемые поля, стоимость)
@@ -1116,6 +1141,51 @@ function selectLanguage(lang){
   $('langRu').classList.toggle('active', lang==='ru');
   $('langKk').classList.toggle('active', lang==='kk');
   localStorage.setItem('audio_lang', lang);
+}
+
+// ── PROTOCOL TEMPLATE (E7) ────────────────────────────────────────
+const TEMPLATES={full:'tplFull',summary:'tplSummary',gost:'tplGost',tasks:'tplTasks'};
+function selectTemplate(t){
+  protocolTemplate=t;
+  for(const k in TEMPLATES){ const el=$(TEMPLATES[k]); if(el) el.classList.toggle('active', k===t); }
+  localStorage.setItem('proto_template', t);
+  applyTemplateCards();
+}
+function initTemplateSel(){
+  const saved=localStorage.getItem('proto_template');
+  if(saved && TEMPLATES[saved]) selectTemplate(saved);
+}
+// Показ/скрытие карточек результата под выбранный шаблон (обратимо)
+function applyTemplateCards(){
+  const vis={
+    full:   {Protocol:1,Context:1,Summary:1,Conclusion:1,Decisions:1,Tasks:1},
+    summary:{Protocol:1,Context:1,Summary:1,Conclusion:1,Decisions:0,Tasks:0},
+    gost:   {Protocol:1,Context:0,Summary:1,Conclusion:1,Decisions:1,Tasks:1},
+    tasks:  {Protocol:1,Context:0,Summary:0,Conclusion:0,Decisions:0,Tasks:1}
+  }[protocolTemplate]||{};
+  ['Protocol','Context','Summary','Conclusion','Decisions','Tasks'].forEach(n=>{
+    const body=$('body'+n); if(!body) return;
+    const card=body.closest('.result-card');
+    if(card) card.style.display = (vis[n]===0)?'none':'';
+  });
+}
+
+// ── ДОСТУПНОСТЬ (E10) ─────────────────────────────────────────────
+const A11Y_SEL='.mode-tab,.provider-opt,.model-opt,.lang-opt,.tpl-opt,.card-header,.chat-suggestion,.panel-title,.history-header';
+function initA11y(){
+  document.querySelectorAll(A11Y_SEL).forEach(el=>{
+    if(!el.hasAttribute('role')) el.setAttribute('role','button');
+    if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+  });
+  // Enter/Space активируют div-кнопки (делегирование — работает и для перерисованных)
+  document.addEventListener('keydown',e=>{
+    if((e.key==='Enter'||e.key===' ') && e.target.matches && e.target.matches(A11Y_SEL+',.history-item-info,.ts-link')){
+      e.preventDefault(); e.target.click();
+    }
+  });
+  // Озвучка прогресса и чата скринридером
+  ['detail1','progressPct','chatMessages'].forEach(id=>{ const el=$(id); if(el) el.setAttribute('aria-live','polite'); });
+  const lo=$('logoutBtn'); if(lo) lo.setAttribute('aria-label','Выйти из приложения');
 }
 
 function getApiKey() {
@@ -1268,15 +1338,17 @@ async function analyze() {
     for (let fi=0; fi<N; fi++) {
       const file=selectedFiles[fi];
       const lbl=N>1?` (файл ${fi+1}/${N})`:'';
-      setStep(1,'active',`Сжатие${lbl}...`);
-      const {blob:compressed,isWav,durationSec}=await compressAudio(file);
-      const estDur=durationSec||Math.max((compressed.size-44)/32000,0); // C2: реальная длительность
       const fileStart=TB*fi/N, fileEnd=TB*(fi+1)/N;
       setProgress(fileStart);
+      setStep(1,'active',`Сжатие${lbl}...`);
+      progCreep(fileStart, fileStart+(fileEnd-fileStart)*0.12, 25000); // крип во время декода — не «зависать»
+      const {blob:compressed,isWav,durationSec}=await compressAudio(file);
+      progStop();
+      const estDur=durationSec||Math.max((compressed.size-44)/32000,0); // C2: реальная длительность
       setStep(1,'active',`Транскрипция${lbl}...`);
       const provLbl = currentProvider === 'deepgram' ? 'Deepgram' : 'Groq';
       $('detail1').textContent = `${provLbl}: файл ${fi+1}/${N}...`;
-      progCreep(fileStart,fileEnd,Math.max(3000,estDur*200)); // F: плавный крип к потолку
+      progCreep(fileStart+(fileEnd-fileStart)*0.12, fileEnd, Math.max(3000,estDur*200)); // F: крип к потолку
       const result = currentProvider === 'deepgram'
         ? await transcribeWithDeepgram(compressed, trKey, totalOffsetSec, roster.names, isWav)
         : await transcribeWithGroq(compressed, trKey, totalOffsetSec, roster.prompt, isWav);
@@ -1358,7 +1430,7 @@ const MAX_DECODE_SEC = 14400;
 async function compressAudio(file) {
   const dur = await probeDuration(file);
   // Декодируем, если длительность в пределах потолка; если она неизвестна — решаем по размеру
-  const decodable = (isFinite(dur) && dur > 0) ? (dur <= MAX_DECODE_SEC) : (file.size <= 200*1024*1024);
+  const decodable = (isFinite(dur) && dur > 0) ? (dur <= MAX_DECODE_SEC) : (file.size <= 550*1024*1024);
   if (!decodable) {
     $('detail1').textContent = `Очень длинный файл (${dur?Math.round(dur/60)+' мин':'>200 МБ'}) — без пере-сжатия; для Groq разбейте на части`;
     return {blob:file, isWav:false, durationSec: isFinite(dur)?dur:0};
@@ -1427,7 +1499,10 @@ function fmtTime(sec){
 
 async function transcribeWithGroq(blob, apiKey, offsetSec=0, rosterPrompt='', isWav=true){
   const MAX=24*1024*1024;
-  // Не-WAV (фоллбэк декода / большой файл) нельзя байт-резать — шлём одним запросом (C2)
+  // Не-WAV крупнее лимита Groq (25 МБ) байт-резать нельзя — явная ошибка-гайд (HOTFIX-2)
+  if(!isWav && blob.size > MAX)
+    throw new Error('Файл не удалось сжать, а у Groq лимит 25 МБ. Переключитесь на Deepgram, разбейте запись на части или используйте файл покороче.');
+  // Не-WAV в пределах лимита (или WAV ≤24 МБ) — один запрос
   if(blob.size<=MAX || !isWav){
     $('detail1').textContent='Отправка на транскрипцию...';
     return await transcribeChunk(blob,apiKey,wavName(blob,isWav),offsetSec,rosterPrompt);
@@ -1513,7 +1588,15 @@ function buildPrompt(transcript, context, fileDate) {
     ? `\nКАНОНИЧЕСКИЕ ИМЕНА УЧАСТНИКОВ: ${roster.list}. Приводи имена к этим написаниям, даже если в транскрипте они искажены распознаванием речи.\n`
     : '';
 
-  return `${ctx}${KZ_NOTE}${rosterNote}${diarizeNote}
+  // E7: акцент под выбранный шаблон протокола (схема JSON неизменна — меняется наполнение)
+  const tplNote = {
+    full:    '',
+    summary: '\nФОРМАТ: краткое резюме. Поля summary и conclusion сделай содержательными; agenda_items/decisions/tasks можно оставить краткими или пустыми, если это не ключевое.\n',
+    gost:    '\nФОРМАТ: протокол комитета в стиле ГОСТ. В agenda_items для каждого пункта в "decision" пиши по форме «СЛУШАЛИ: … ПОСТАНОВИЛИ: …». Решения — нумерованные, официальным языком.\n',
+    tasks:   '\nФОРМАТ: фокус на задачах. Тщательно извлеки ВСЕ поручения в tasks (title/responsible/deadline/priority). Остальные поля заполни кратко.\n'
+  }[protocolTemplate] || '';
+
+  return `${ctx}${KZ_NOTE}${rosterNote}${diarizeNote}${tplNote}
 ${dateHint}Сегодня: ${today}.
 
 ЗАДАЧА: Проанализируй транскрипт совещания и верни JSON.
@@ -1648,6 +1731,7 @@ function renderResults(transcript, a){
   $('transcriptText').innerHTML=renderTranscriptHTML(transcript); // E5: кликабельные таймкоды (после esc)
   setupAudioPlayer();   // E5
   renderCost();         // E8
+  applyTemplateCards(); // E7
   if($('transcriptSearch')) $('transcriptSearch').value='';
 }
 
@@ -1781,20 +1865,28 @@ function tasksToICS(){
 // ── E1: ЭКСПОРТ .DOC / ПЕЧАТЬ-PDF ─────────────────────────────────
 function buildProtocolHTML(){
   const a=lastAnalysis||{};
+  // E7: какие секции включать в .doc под выбранный шаблон
+  const map={
+    full:   {ctx:1,summary:1,agenda:1,decisions:1,tasks:1,concl:1},
+    summary:{ctx:1,summary:1,agenda:0,decisions:0,tasks:0,concl:1},
+    gost:   {ctx:0,summary:1,agenda:1,decisions:1,tasks:1,concl:1},
+    tasks:  {ctx:0,summary:0,agenda:0,decisions:0,tasks:1,concl:0}
+  }[protocolTemplate] || {ctx:1,summary:1,agenda:1,decisions:1,tasks:1,concl:1};
+  const show=t=>map[t]!==0;
   const agenda=(a.agenda_items||[]).map((it,i)=>`<p><b>${i+1}. ${esc(it.question)}</b><br>Решение: ${esc(it.decision)}${it.responsible&&it.responsible!=='Не указан'?'<br>Ответственный: '+esc(it.responsible):''}</p>`).join('');
   const decisions=(a.decisions||[]).map(d=>`<li>${esc(d)}</li>`).join('');
   const tasks=(a.tasks||[]).map((t,i)=>`<tr><td>${i+1}</td><td>${esc(t.title)}</td><td>${esc(t.responsible)}</td><td>${esc(t.deadline)}</td><td>${esc(t.priority)}</td></tr>`).join('');
-  return `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset="utf-8"><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.4;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #333;padding:4px 8px;font-size:11pt;}h1{font-size:16pt;text-align:center;}h2{font-size:13pt;border-bottom:1px solid #999;}</style></head><body>
-  <h1>ПРОТОКОЛ СОВЕЩАНИЯ</h1>
-  <p><b>Дата:</b> ${esc(a.date||'')}<br><b>Тема:</b> ${esc(a.topic||'')}<br><b>Участники:</b> ${esc((a.participants||[]).join(', '))}</p>
-  <p><b>Контекст:</b> ${esc(a.context||'')}</p>
-  <h2>Краткое резюме</h2><p>${esc(a.summary||'')}</p>
-  <h2>Вопросы повестки и решения</h2>${agenda||'<p>—</p>'}
-  <h2>Ключевые решения</h2><ol>${decisions||'<li>—</li>'}</ol>
-  <h2>Задачи и ответственные</h2><table><tr><th>№</th><th>Задача</th><th>Ответственный</th><th>Срок</th><th>Приоритет</th></tr>${tasks}</table>
-  <h2>Заключение</h2><p>${esc(a.conclusion||'')}</p>
-  <br><br><p>Секретарь _______________ &nbsp;&nbsp; Председатель _______________</p>
-  </body></html>`;
+  const S=[];
+  S.push(`<h1>ПРОТОКОЛ СОВЕЩАНИЯ</h1>`);
+  S.push(`<p><b>Дата:</b> ${esc(a.date||'')}<br><b>Тема:</b> ${esc(a.topic||'')}<br><b>Участники:</b> ${esc((a.participants||[]).join(', '))}</p>`);
+  if(show('ctx'))       S.push(`<p><b>Контекст:</b> ${esc(a.context||'')}</p>`);
+  if(show('summary'))   S.push(`<h2>Краткое резюме</h2><p>${esc(a.summary||'')}</p>`);
+  if(show('agenda'))    S.push(`<h2>Вопросы повестки и решения</h2>${agenda||'<p>—</p>'}`);
+  if(show('decisions')) S.push(`<h2>Ключевые решения</h2><ol>${decisions||'<li>—</li>'}</ol>`);
+  if(show('tasks'))     S.push(`<h2>Задачи и ответственные</h2><table><tr><th>№</th><th>Задача</th><th>Ответственный</th><th>Срок</th><th>Приоритет</th></tr>${tasks}</table>`);
+  if(show('concl'))     S.push(`<h2>Заключение</h2><p>${esc(a.conclusion||'')}</p>`);
+  S.push(`<br><br><p>Секретарь _______________ &nbsp;&nbsp; Председатель _______________</p>`);
+  return `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset="utf-8"><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.4;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #333;padding:4px 8px;font-size:11pt;}h1{font-size:16pt;text-align:center;}h2{font-size:13pt;border-bottom:1px solid #999;}</style></head><body>${S.join('\n')}</body></html>`;
 }
 function downloadDocx(){
   if(!lastAnalysis){ showError('Нет данных'); return; }
@@ -1978,11 +2070,15 @@ ${chatTranscript.slice(0,60000)}`;
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
+  console.log('[Meeting Analyzer] build '+BUILD);
+  if($('buildStamp')) $('buildStamp').textContent='build '+BUILD;
   loadKeys();
   renderHistory();
   selectAppMode('transcript');
   initSettingsPanel();
   initHistoryPanel();
+  initA11y();        // E10: клавиатура для div-кнопок
+  initTemplateSel(); // E7: восстановить выбранный шаблон протокола
   const inp=$('chatInput');
   if(inp){
     inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px';});
@@ -1999,14 +2095,20 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── DEEPGRAM TRANSCRIPTION ────────────────────────────────────────
 async function transcribeWithDeepgram(blob, apiKey, offsetSec=0, keyterms=[], isWav=true){
-  const MAX = 100 * 1024 * 1024;
-  // Не-WAV (фоллбэк декода / большой файл) нельзя байт-резать — один запрос (C2)
-  if (blob.size <= MAX || !isWav) {
+  const CHUNK = 20 * 1024 * 1024; // порог чанкинга — мелкие надёжные аплоады (HOTFIX-2)
+  // Не-WAV нельзя байт-резать: умеренный — один запрос; крупный — явная ошибка-гайд (не обречённый аплоад)
+  if (!isWav) {
+    if (blob.size > 40*1024*1024)
+      throw new Error('Файл не удалось сжать в браузере, а отправлять его целиком ненадёжно. Разбейте запись на части (можно выбрать несколько файлов сразу) или используйте файл покороче.');
+    $('detail1').textContent = 'Отправка в Deepgram...';
+    return await deepgramChunk(blob, apiKey, offsetSec, keyterms);
+  }
+  if (blob.size <= CHUNK) {
     $('detail1').textContent = 'Отправка в Deepgram...';
     return await deepgramChunk(blob, apiKey, offsetSec, keyterms);
   }
   const BPS=32000, HDR=44;
-  const chunkSecs = Math.min(900, Math.floor((MAX - HDR) / BPS)); // C6: не >15 мин на запрос
+  const chunkSecs = 600; // ~19 МБ/чанк — надёжно на медленной/корп. сети
   const chunkBytes = chunkSecs * BPS;
   const total = Math.ceil((blob.size-HDR)/chunkBytes);
   const headerBytes = new Uint8Array(await blob.slice(0,HDR).arrayBuffer());
