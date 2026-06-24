@@ -729,7 +729,7 @@ mark.active-match{background:var(--accent3);}
 
 <script>
 function sanitizeKey(k){return(k||'').replace(/[^\x20-\x7E]/g,'').trim();}
-const BUILD='2026-06-12'; // версия билда — проверка, что загружена свежая страница (не кэш)
+const BUILD='2026-06-24'; // версия билда — проверка, что загружена свежая страница (не кэш)
 
 // ══════════════════════════════════════════════════════════════════
 // SHARED HELPERS (аудит-харднинг)
@@ -1653,7 +1653,7 @@ async function analyzeWithClaude(transcript, context, apiKey, fileDate=''){
   const res=await fetchRetry('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':sanitizeKey(apiKey),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:16000,messages:[{role:'user',content:prompt}]})
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:16000,messages:[{role:'user',content:prompt}]})
   },{label:'Claude'});
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(`Claude API: ${err.error?.message||res.statusText}`);}
   const data=await res.json();
@@ -2053,7 +2053,7 @@ ${chatTranscript.slice(0,60000)}`;
       const r=await fetchRetry('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':sanitizeKey(chatApiKey),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2048,system:sysPrompt,messages:chatHistory})
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2048,system:sysPrompt,messages:chatHistory})
       },{label:'Claude'});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error?.message||r.statusText);
